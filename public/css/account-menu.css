@@ -1,0 +1,162 @@
+.topbar nav a {
+    position: relative;
+    padding: 8px 0;
+}
+
+.topbar nav a::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--primary, #7c5cf0);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .2s ease;
+}
+
+.topbar nav a:hover::after,
+.topbar nav a:focus-visible::after,
+.topbar nav a.active::after {
+    transform: scaleX(1);
+}
+
+.topbar nav a.active {
+    color: #c4b5fd;
+}
+
+.account-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: 18px;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.topbar-actions .cart-link {
+    margin-left: 0;
+}
+
+.top-actions .account-actions {
+    margin-left: 0;
+}
+
+.account-button {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 10px;
+    border: 1px solid var(--line, #292a3c);
+    border-radius: 999px;
+    color: inherit;
+    background: rgba(255,255,255,.035);
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .2s ease, background .2s ease;
+}
+
+.account-button:hover,
+.account-button:focus-visible,
+.account-button[aria-expanded="true"] {
+    border-color: rgba(124,92,240,.7);
+    background: rgba(124,92,240,.12);
+}
+
+.account-button:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 3px;
+}
+
+.account-greeting {
+    color: #e6e3f2;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 30;
+    min-width: 160px;
+    padding: 8px;
+    border: 1px solid var(--line, #292a3c);
+    border-radius: 10px;
+    background: var(--panel, #101018);
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+}
+
+.account-menu[hidden] {
+    display: none;
+}
+
+.account-menu a,
+.account-menu form button {
+    display: block;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 6px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.account-menu a:hover,
+.account-menu form button:hover,
+.account-menu a:focus-visible,
+.account-menu form button:focus-visible {
+    outline: none;
+    background: rgba(124,92,240,.14);
+}
+
+.account-menu form {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--line, #292a3c);
+}
+
+@media (max-width: 700px) {
+    .account-actions {
+        margin-left: 0;
+    }
+
+    @media (max-width: 380px) {
+        .topbar-actions {
+            gap: 8px;
+        }
+
+        .account-actions {
+            margin-left: 0;
+        }
+    }
+
+    .account-button {
+        min-height: 38px;
+        padding: 6px 8px;
+    }
+
+    .account-greeting {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .topbar nav a::after,
+    .account-button {
+        transition: none;
+    }
+}

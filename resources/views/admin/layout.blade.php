@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#100b20">
+    <title>@yield('title', 'Admin') | Oversmoke Vlounge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: dark; font-family: 'DM Sans', sans-serif; color: #f4f1ff; background: #0c0a12; font-synthesis: none; }
+        * { box-sizing: border-box; }
+        body { min-width: 320px; min-height: 100vh; margin: 0; background: radial-gradient(ellipse at 70% 0, rgba(66, 42, 116, .11), transparent 44%), #0c0a12; }
+        a { color: inherit; }
+        .admin-shell { min-height: 100vh; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); border: 0; }
+        .sidebar { position: fixed; z-index: 5; inset: 0 auto 0 0; display: flex; width: 218px; flex-direction: column; border-right: 1px solid #211d2b; background: rgba(13, 11, 19, .97); padding: 18px 12px 14px; }
+        .brand { display: flex; height: 32px; align-items: center; gap: 9px; padding: 0 8px; text-decoration: none; }
+        .brand img { width: 28px; height: 28px; object-fit: contain; }
+        .brand span { font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+        .nav-label { margin: 28px 8px 9px; color: #686273; font-size: 9px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+        .nav-links { display: grid; gap: 4px; }
+        .nav-link { display: flex; min-height: 34px; align-items: center; gap: 10px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; color: #9c97a8; font-size: 11px; text-decoration: none; transition: background .18s, color .18s, border-color .18s; }
+        .nav-link:hover { background: #171320; color: #f4f1ff; }
+        .nav-link.active { border-color: rgba(130, 88, 255, .16); background: linear-gradient(90deg, rgba(100, 54, 236, .28), rgba(90, 50, 180, .1)); color: #cdbdff; }
+        .nav-icon { display: block; width: 16px; height: 16px; flex: 0 0 16px; object-fit: contain; opacity: .9; }
+        .nav-link.active .nav-icon { opacity: 1; }
+        .nav-link.disabled { color: #625d6b; cursor: not-allowed; }
+        .nav-link.disabled .nav-icon { opacity: .45; }
+        .sidebar-bottom { margin-top: auto; }
+        .add-shortcut { display: flex; min-height: 32px; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid #32264d; border-radius: 6px; color: #c8b7ff; font-size: 10px; text-decoration: none; transition: background .18s; }
+        .add-shortcut:hover { background: #1c1530; }
+        .main-area { min-height: 100vh; margin-left: 218px; }
+        .topbar { position: sticky; z-index: 4; top: 0; display: flex; min-height: 54px; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #211d2b; background: rgba(12, 10, 18, .92); padding: 0 26px; backdrop-filter: blur(16px); }
+        .topbar-search { position: relative; width: min(280px, 42vw); }
+        .topbar-search input { width: 100%; height: 30px; padding: 0 34px 0 11px; border: 1px solid #272331; border-radius: 6px; outline: 0; background: #14111b; color: #eee; font: inherit; font-size: 10px; }
+        .topbar-search input:focus { border-color: #7045eb; box-shadow: 0 0 0 2px rgba(112, 69, 235, .15); }
+        .search-icon { position: absolute; top: 7px; right: 10px; color: #8d8798; font-size: 12px; pointer-events: none; }
+        .admin-profile { position: relative; display: flex; align-items: center; }
+        .admin-profile-button { display: flex; align-items: center; gap: 9px; padding: 4px 0 4px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: right; cursor: pointer; }
+        .admin-profile-button:hover .avatar, .admin-profile-button:focus-visible .avatar, .admin-profile-button[aria-expanded="true"] .avatar { border-color: #7658bc; background: #2a2140; }
+        .admin-profile-button:focus-visible { outline: 2px solid #a98cff; outline-offset: 3px; }
+        .admin-profile-copy { text-align: right; }
+        .admin-profile-copy strong { display: block; font-size: 10px; font-weight: 600; }
+        .admin-profile-copy span { display: block; margin-top: 3px; color: #837d8e; font-size: 9px; }
+        .avatar { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid #423460; border-radius: 50%; background: #211a34; color: #cbbaff; font-size: 10px; font-weight: 700; }
+        .admin-account-menu { position: absolute; top: calc(100% + 9px); right: 0; z-index: 8; min-width: 170px; padding: 7px; border: 1px solid #322c3e; border-radius: 7px; background: #17141f; box-shadow: 0 12px 30px rgba(0, 0, 0, .4); }
+        .admin-account-menu[hidden] { display: none; }
+        .admin-account-menu form { margin: 0; }
+        .admin-account-menu button { width: 100%; padding: 9px 10px; border: 0; border-radius: 5px; background: transparent; color: #c8c2d2; font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
+        .admin-account-menu button:hover, .admin-account-menu button:focus-visible { outline: 0; background: rgba(116, 79, 205, .16); color: #fff; }
+        .page-content { max-width: 1500px; margin: 0 auto; padding: 25px 27px 38px; }
+        .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+        .page-heading h1 { margin: 0; font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -.025em; }
+        .page-heading p { margin: 5px 0 0; color: #8e8898; font-size: 10px; }
+        .primary-button, .secondary-button { display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid #5235a0; border-radius: 6px; background: linear-gradient(100deg, #5127d2, #7140e8); color: #fff; font: inherit; font-size: 10px; font-weight: 600; text-decoration: none; cursor: pointer; transition: filter .18s, transform .18s; }
+        .primary-button:hover, .secondary-button:hover { filter: brightness(1.15); }
+        .primary-button:active, .secondary-button:active { transform: translateY(1px); }
+        .secondary-button { border-color: #302a3b; background: #17141f; color: #c1bbc9; }
+        .panel { border: 1px solid #26212f; border-radius: 8px; background: linear-gradient(145deg, rgba(24, 21, 33, .92), rgba(17, 15, 23, .95)); }
+        .panel-title { margin: 0; color: #e8e4ef; font-size: 11px; font-weight: 600; }
+        .muted { color: #888291; }
+        .flash { margin-bottom: 16px; padding: 10px 12px; border: 1px solid rgba(112, 220, 170, .26); border-radius: 6px; background: rgba(30, 130, 80, .1); color: #9de2bd; font-size: 11px; }
+        .field-error { margin: 6px 0 0; color: #ff8e9b; font-size: 10px; }
+        .table-wrap { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+        .data-table th { padding: 10px 12px; border-bottom: 1px solid #2b2634; color: #807a89; font-size: 9px; font-weight: 600; }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid rgba(43, 38, 52, .66); color: #c8c3d0; font-size: 10px; }
+        .data-table tbody tr:last-child td { border-bottom: 0; }
+        .data-table tbody tr:hover { background: rgba(116, 79, 205, .045); }
+        .product-cell { display: flex; align-items: center; gap: 9px; }
+        .product-thumb { display: grid; width: 31px; height: 31px; flex: 0 0 31px; place-items: center; overflow: hidden; border: 1px solid #322c3e; border-radius: 5px; background: #15121c; color: #797187; font-size: 9px; }
+        .product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .product-name { color: #eeeaf5; font-weight: 600; }
+        .product-meta { display: block; margin-top: 3px; color: #797382; font-size: 9px; }
+        .badge { display: inline-flex; min-height: 19px; align-items: center; padding: 0 7px; border: 1px solid #312943; border-radius: 4px; background: #1c1725; color: #c4b1ff; font-size: 9px; }
+        .badge.good { border-color: rgba(48, 180, 122, .22); background: rgba(28, 125, 81, .1); color: #60d9a1; }
+        .badge.warning { border-color: rgba(212, 160, 45, .22); background: rgba(160, 117, 18, .1); color: #e8c35f; }
+        .badge.danger { border-color: rgba(225, 77, 97, .24); background: rgba(151, 34, 52, .12); color: #ff7888; }
+        .table-action { border: 0; background: none; color: #a98cff; font: inherit; font-size: 10px; text-decoration: none; cursor: pointer; }
+        .table-action:hover { color: #fff; }
+        .empty-state { padding: 38px 16px; color: #888291; font-size: 11px; text-align: center; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #26212f; padding: 11px 12px; color: #888291; font-size: 9px; }
+        .pagination nav { display: flex; gap: 5px; }
+        .pagination a, .pagination span[aria-current] span, .pagination span[aria-disabled] span { display: inline-grid; min-width: 24px; height: 24px; place-items: center; border: 1px solid #302a3b; border-radius: 5px; color: #c3bdce; text-decoration: none; }
+        .pagination span[aria-current] span { border-color: #6543bb; background: #281e3d; color: #e1d7ff; }
+        .pagination span[aria-disabled] span { color: #615b6a; }
+        @media (max-width: 760px) {
+            .sidebar { width: 62px; align-items: center; padding: 14px 7px; }
+            .brand { padding: 0; }
+            .brand span, .nav-label, .nav-link .nav-text, .add-shortcut { display: none; }
+            .nav-links { width: 100%; margin-top: 24px; }
+            .nav-link { justify-content: center; padding: 0; }
+            .nav-icon { width: 18px; height: 18px; flex-basis: 18px; }
+            .main-area { margin-left: 62px; }
+            .topbar { padding: 0 15px; }
+            .page-content { padding: 20px 15px 28px; }
+        }
+        @media (max-width: 480px) {
+            .topbar { min-height: 50px; gap: 8px; }
+            .topbar-search { width: min(190px, 52vw); }
+            .admin-profile-copy { display: none; }
+            .page-heading { align-items: center; }
+            .page-heading h1 { font-size: 17px; }
+            .page-heading p { max-width: 210px; line-height: 1.5; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+    </style>
+    @stack('styles')
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="sidebar">
+            <a class="brand" href="{{ route('admin.dashboard') }}">
+                <img src="{{ asset('images/oversmokev-logo.png') }}" alt="">
+                <span>OVERSMOKE VLOUNGE</span>
+            </a>
+            <p class="nav-label">Workspace</p>
+            <nav class="nav-links" aria-label="Admin navigation">
+                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/dashboard.png') }}" alt=""><span class="nav-text">Dashboard</span></a>
+                <a class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" href="{{ route('admin.products.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/products.png') }}" alt=""><span class="nav-text">Products</span></a>
+                <a class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/inventory.png') }}" alt=""><span class="nav-text">Inventory</span></a>
+                <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/orders.png') }}" alt=""><span class="nav-text">Orders</span></a>
+                <span class="nav-link disabled" aria-disabled="true" title="Settings are not available in the admin area yet"><img class="nav-icon" src="{{ asset('images/admin-icons/settings.png') }}" alt=""><span class="nav-text">Settings</span></span>
+            </nav>
+            <div class="sidebar-bottom">
+                <a class="add-shortcut" href="{{ route('admin.products.create') }}">+ &nbsp; Add product</a>
+            </div>
+        </aside>
+
+        <div class="main-area">
+            <header class="topbar">
+                <form class="topbar-search" method="GET" action="{{ request()->routeIs('admin.orders.*') ? route('admin.orders.index') : route('admin.products.index') }}" role="search">
+                    <label class="sr-only" for="admin-search">Search {{ request()->routeIs('admin.orders.*') ? 'orders' : 'products' }}</label>
+                    <input id="admin-search" type="search" name="q" value="{{ request('q') }}" placeholder="Search {{ request()->routeIs('admin.orders.*') ? 'orders...' : 'products...' }}">
+                    <span class="search-icon" aria-hidden="true">⌕</span>
+                </form>
+                <div class="admin-profile">
+                    <button class="admin-profile-button" id="adminProfileButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="adminAccountMenu">
+                        <span class="admin-profile-copy">
+                            <strong>{{ auth('admin')->user()->name }}</strong>
+                            <span>Store administrator</span>
+                        </span>
+                        <span class="avatar" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(auth('admin')->user()->name, 0, 1)) }}</span>
+                    </button>
+                    <div class="admin-account-menu" id="adminAccountMenu" hidden>
+                        <form method="POST" action="{{ route('admin.logout') }}">
+                            @csrf
+                            <button type="submit">Sign out</button>
+                        </form>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                @if (session('status'))
+                    <div class="flash" role="status">{{ session('status') }}</div>
+                @endif
+                @yield('content')
+            </main>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const button = document.getElementById('adminProfileButton');
+            const menu = document.getElementById('adminAccountMenu');
+            if (!button || !menu) return;
+
+            const setOpen = open => {
+                menu.hidden = !open;
+                button.setAttribute('aria-expanded', String(open));
+            };
+
+            button.addEventListener('click', () => setOpen(menu.hidden));
+            document.addEventListener('click', event => {
+                if (!event.target.closest('.admin-profile')) setOpen(false);
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && !menu.hidden) {
+                    setOpen(false);
+                    button.focus();
+                }
+            });
+        })();
+    </script>
+    @stack('scripts')
+</body>
+</html>

@@ -1,0 +1,140 @@
+@extends('admin.layout')
+
+@section('title', 'Order '.$order->order_number)
+
+@section('content')
+    <div class="page-heading order-detail-heading">
+        <div>
+            <a class="back-link" href="{{ route('admin.orders.index') }}">← Back to orders</a>
+            <h1>Order #{{ $order->order_number }}</h1>
+        </div>
+        <form class="status-form" method="POST" action="{{ route('admin.orders.status', $order) }}">
+            @csrf
+            @method('PUT')
+            <label class="sr-only" for="order-status">Order status</label>
+            <select id="order-status" name="status">
+                @foreach ($statuses as $status)
+                    <option value="{{ $status }}" @selected($order->status === $status)>{{ ucfirst($status) }}</option>
+                @endforeach
+            </select>
+            <button class="secondary-button" type="submit">Update status</button>
+        </form>
+    </div>
+
+    @error('invoice')
+        <div class="order-error" role="alert">{{ $message }}</div>
+    @enderror
+
+    <section class="order-detail-grid">
+        <article class="panel detail-card customer-card">
+            <div class="detail-card-heading">
+                <div>
+                    <h2 class="panel-title">Order #{{ $order->order_number }}</h2>
+                    <p class="panel-subtitle">Placed {{ $order->created_at->format('F j, Y \a\t g:i A') }}</p>
+                </div>
+                <span class="order-status-badge status-{{ $order->status }}">{{ ucfirst($order->status) }}</span>
+            </div>
+
+            <section class="detail-section">
+                <h3>Customer information</h3>
+                <p class="customer-name">{{ $order->customer_name }}</p>
+                <a href="mailto:{{ $order->customer_email }}">{{ $order->customer_email }}</a>
+                <a href="tel:{{ $order->customer_phone }}">{{ $order->customer_phone }}</a>
+            </section>
+
+            <section class="detail-section shipping-section">
+                <h3>Shipping address</h3>
+                <p>{{ $order->delivery_address }}</p>
+                <span>{{ $order->customer_phone }}</span>
+            </section>
+            <div class="payment-note">Payment method: {{ $order->payment_method }}</div>
+        </article>
+
+        <article class="panel detail-card items-card">
+            <div class="detail-card-heading">
+                <div>
+                    <h2 class="panel-title">Ordered items</h2>
+                    <p class="panel-subtitle">{{ $order->items->count() }} {{ \Illuminate\Support\Str::plural('product', $order->items->count()) }} in this order</p>
+                </div>
+            </div>
+
+            <div class="ordered-items">
+                @foreach ($order->items as $item)
+                    <div class="ordered-item">
+                        <span class="ordered-item-image">
+                            @if ($item->image_path)
+                                <img src="{{ asset('storage/'.$item->image_path) }}" alt="">
+                            @else
+                                {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($item->product_name, 0, 1)) }}
+                            @endif
+                        </span>
+                        <span class="ordered-item-copy">
+                            <strong>{{ $item->product_name }}</strong>
+                            <small>{{ $item->brand ?: $item->category }}{{ $item->color ? ' · '.$item->color : '' }}</small>
+                            <small>₱{{ number_format((float) $item->unit_price, 2) }} × {{ $item->quantity }}</small>
+                        </span>
+                        <strong class="ordered-item-total">₱{{ number_format((float) $item->unit_price * $item->quantity, 2) }}</strong>
+                    </div>
+                @endforeach
+            </div>
+
+            <dl class="order-totals">
+                <div><dt>Subtotal</dt><dd>₱{{ number_format((float) $order->subtotal, 2) }}</dd></div>
+                <div><dt>Shipping fee</dt><dd>₱{{ number_format((float) $order->shipping_fee, 2) }}</dd></div>
+                <div class="grand-total"><dt>Total</dt><dd>₱{{ number_format((float) $order->total, 2) }}</dd></div>
+            </dl>
+
+            <div class="invoice-actions">
+                <a class="secondary-button" href="{{ route('admin.orders.invoice', $order) }}" target="_blank" rel="noopener">Print invoice</a>
+                <form method="POST" action="{{ route('admin.orders.invoice.email', $order) }}">
+                    @csrf
+                    <button class="primary-button" type="submit">Email invoice</button>
+                </form>
+            </div>
+        </article>
+    </section>
+@endsection
+
+@push('styles')
+    <style>
+        .order-detail-heading { align-items: end; margin-bottom: 14px; }
+        .order-detail-heading h1 { margin-top: 9px; font-size: 21px; }
+        .back-link { color: #a995dc; font-size: 9px; text-decoration: none; }
+        .status-form { display: flex; align-items: center; gap: 7px; }
+        .status-form select { height: 31px; padding: 0 9px; border: 1px solid #302a3b; border-radius: 5px; background: #13111a; color: #eee; font: inherit; font-size: 9px; }
+        .order-detail-grid { display: grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.15fr); gap: 14px; align-items: start; }
+        .detail-card { min-width: 0; padding: 15px; }
+        .detail-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 11px; border-bottom: 1px solid #2b2634; }
+        .detail-card .panel-title { font-size: 12px; }
+        .detail-card .panel-subtitle { margin: 4px 0 0; color: #817b8a; font-size: 8px; }
+        .order-status-badge { display: inline-flex; min-height: 19px; align-items: center; padding: 0 7px; border: 1px solid #312943; border-radius: 4px; background: #1c1725; color: #c4b1ff; font-size: 8px; white-space: nowrap; }
+        .status-processing { border-color: rgba(212,160,45,.28); background: rgba(160,117,18,.1); color: #e8c35f; }
+        .status-shipped { border-color: rgba(72,143,240,.3); background: rgba(30,59,102,.2); color: #73adff; }
+        .status-completed { border-color: rgba(48,180,122,.24); background: rgba(28,125,81,.1); color: #60d9a1; }
+        .status-cancelled { border-color: rgba(225,77,97,.27); background: rgba(151,34,52,.12); color: #ff7888; }
+        .detail-section { display: grid; gap: 7px; padding: 14px 0; }
+        .detail-section h3 { margin: 0 0 2px; font-size: 11px; }
+        .detail-section p, .detail-section a, .detail-section span { margin: 0; color: #c4bfcb; font-size: 9px; overflow-wrap: anywhere; }
+        .detail-section a { color: #b6a5ff; text-decoration: none; }
+        .customer-name { color: #f0edf5 !important; font-size: 11px !important; font-weight: 600; }
+        .shipping-section { border-top: 1px solid #2b2634; }
+        .payment-note { padding-top: 9px; border-top: 1px solid #2b2634; color: #898393; font-size: 8px; }
+        .ordered-items { display: grid; }
+        .ordered-item { display: flex; min-width: 0; align-items: center; gap: 9px; padding: 10px 0; border-bottom: 1px solid rgba(43,38,52,.66); }
+        .ordered-item-image { display: grid; width: 53px; height: 53px; flex: 0 0 53px; place-items: center; overflow: hidden; border: 1px solid #322c3e; border-radius: 4px; background: #15121c; color: #8d829f; font-size: 12px; }
+        .ordered-item-image img { width: 100%; height: 100%; object-fit: contain; }
+        .ordered-item-copy { display: grid; min-width: 0; flex: 1; gap: 3px; }
+        .ordered-item-copy strong { overflow: hidden; color: #eeeaf5; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+        .ordered-item-copy small { color: #8f8998; font-size: 8px; }
+        .ordered-item-total { color: #eeeaf5; font-size: 9px; white-space: nowrap; }
+        .order-totals { display: grid; gap: 9px; margin: 12px 0; }
+        .order-totals div { display: flex; justify-content: space-between; gap: 10px; color: #b9b3c2; font-size: 9px; }
+        .order-totals dt, .order-totals dd { margin: 0; }
+        .order-totals .grand-total { padding-top: 9px; border-top: 1px solid #2b2634; color: #f4f1ff; font-weight: 700; }
+        .invoice-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 10px; border-top: 1px solid #2b2634; }
+        .invoice-actions form { margin: 0; }
+        .order-error { margin-bottom: 12px; padding: 9px 11px; border: 1px solid rgba(225,77,97,.3); border-radius: 6px; background: rgba(151,34,52,.12); color: #ff9aa7; font-size: 10px; }
+        @media (max-width: 760px) { .order-detail-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 480px) { .order-detail-heading { align-items: flex-start; flex-direction: column; }.status-form { width: 100%; }.invoice-actions { justify-content: stretch; }.invoice-actions > *, .invoice-actions form, .invoice-actions button { flex: 1; }.invoice-actions .primary-button, .invoice-actions .secondary-button { width: 100%; } }
+    </style>
+@endpush

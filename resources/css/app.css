@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@theme {
+    --animate-drift-a: drift-a 45s ease-in-out infinite alternate;
+    --animate-drift-b: drift-b 60s ease-in-out infinite alternate;
+
+    @keyframes drift-a {
+        from { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+        to   { transform: translate3d(3%, 2%, 0) scale(1.15); }
+    }
+
+    @keyframes drift-b {
+        from { transform: scaleX(-1) translate3d(3%, 2%, 0) scale(1.1); }
+        to   { transform: scaleX(-1) translate3d(-3%, -3%, 0) scale(1.2); }
+    }
+}
