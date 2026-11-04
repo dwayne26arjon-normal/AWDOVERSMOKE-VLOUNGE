@@ -40,10 +40,10 @@
                  data-name="{{ $product->name }}"
                  data-brand="{{ $product->brand }}"
                  data-price="{{ $product->price }}"
-                 data-image="{{ $product->image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) : '' }}">
+                 data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
             <div class="product-visual" id="productImagePreview">
                 @if ($product->image_path)
-                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) }}" alt="{{ $product->name }}">
+                    <img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}">
                     <span class="image-preview-hint">Move your cursor to preview</span>
                 @else
                     <div class="device-placeholder" aria-hidden="true"></div>

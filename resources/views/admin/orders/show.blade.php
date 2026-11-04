@@ -63,7 +63,7 @@
                     <div class="ordered-item">
                         <span class="ordered-item-image">
                             @if ($item->image_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($item->image_path) }}" alt="">
+                                <img src="{{ asset('storage/'.$item->image_path) }}" alt="">
                             @else
                                 {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($item->product_name, 0, 1)) }}
                             @endif

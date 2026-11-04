@@ -131,7 +131,7 @@
                                 <span class="badge">Low stock</span>
                             @endif
                             @if ($product->image_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) }}" alt="{{ $product->name }}">
+                                <img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}">
                             @else
                                 <div class="placeholder"></div>
                             @endif
