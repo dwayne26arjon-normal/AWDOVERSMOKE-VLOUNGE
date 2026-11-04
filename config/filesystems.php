@@ -39,10 +39,19 @@ return [
         ],
 
         'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'driver' => env('PUBLIC_DISK_DRIVER', 'local'),
+            'root' => env('PUBLIC_DISK_ROOT', storage_path('app/public')),
+            'url' => env('AWS_URL') ?: rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'options' => [
+                'before_upload' => [\App\Support\StripS3ObjectAcl::class, 'beforeUpload'],
+            ],
             'throw' => false,
             'report' => false,
         ],

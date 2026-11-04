@@ -78,7 +78,7 @@
                                 <div class="product-cell">
                                     <span class="product-thumb">
                                         @if ($product->image_path)
-                                            <img src="{{ asset('storage/' . $product->image_path) }}" alt="">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) }}" alt="">
                                         @else
                                             {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($product->name, 0, 1)) }}
                                         @endif

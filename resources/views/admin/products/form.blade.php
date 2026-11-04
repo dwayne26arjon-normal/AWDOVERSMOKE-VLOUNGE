@@ -34,7 +34,7 @@
                 </div>
                 <label class="image-drop" for="image">
                     @if ($product->image_path)
-                        <img id="image-preview" src="{{ asset('storage/' . $product->image_path) }}" alt="Current product image">
+                        <img id="image-preview" src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) }}" alt="Current product image">
                     @else
                         <img id="image-preview" alt="Product image preview" hidden>
                         <span id="image-placeholder"><span class="upload-icon">+</span><strong>Choose a product image</strong><span>Click to browse your files</span></span>

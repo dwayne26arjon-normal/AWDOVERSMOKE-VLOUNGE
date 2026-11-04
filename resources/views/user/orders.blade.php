@@ -81,7 +81,7 @@
                                     <div class="order-product-info">
                                         <span class="product-thumbnail">
                                             @if ($item->image_path)
-                                                <img src="{{ asset('storage/'.$item->image_path) }}" alt="">
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($item->image_path) }}" alt="">
                                             @else
                                                 <span></span>
                                             @endif
