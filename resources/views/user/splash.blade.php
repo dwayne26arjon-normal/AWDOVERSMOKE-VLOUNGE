@@ -22,7 +22,7 @@
             justify-content: center;
             overflow: hidden;
             background: linear-gradient(160deg, var(--bg-dark), var(--bg-mid));
-            transition: opacity {{ ($quick ?? false) ? '.5s' : '.7s' }} ease;
+            transition: opacity {{ ($quick ?? false) ? '.4s' : '.7s' }} ease;
         }
 
         body.leaving { opacity: 0; }
@@ -69,11 +69,11 @@
 
         const SPLASH = {
             startDelay:  QUICK ? 0    : 900,
-            inhale:      QUICK ? 1800 : 2800,
+            inhale:      QUICK ? 900  : 2800,
             hold:        QUICK ? 0    : 500,
-            exhale:      QUICK ? 1600 : 2300,
-            afterExhale: QUICK ? 600  : 1600,
-            fade:        QUICK ? 500  : 700,
+            exhale:      QUICK ? 900  : 2300,
+            afterExhale: QUICK ? 200  : 1600,
+            fade:        QUICK ? 400  : 700,
             next: "{{ $next ?? url('/login') }}"
         };
 

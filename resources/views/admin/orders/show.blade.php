@@ -8,7 +8,14 @@
             <a class="back-link" href="{{ route('admin.orders.index') }}">← Back to orders</a>
             <h1>Order #{{ $order->order_number }}</h1>
         </div>
-        <form class="status-form" method="POST" action="{{ route('admin.orders.status', $order) }}">
+        <form
+            class="status-form"
+            id="order-status-form"
+            method="POST"
+            action="{{ route('admin.orders.status', $order) }}"
+            data-order-number="{{ $order->order_number }}"
+            data-current-status="{{ $order->status }}"
+        >
             @csrf
             @method('PUT')
             <label class="sr-only" for="order-status">Order status</label>
@@ -93,6 +100,18 @@
             </div>
         </article>
     </section>
+
+    <dialog class="status-confirm-dialog" id="statusConfirmDialog" aria-labelledby="statusConfirmTitle" aria-describedby="statusConfirmMessage">
+        <div class="status-confirm-icon" aria-hidden="true">!</div>
+        <p class="status-confirm-eyebrow">CONFIRM ORDER UPDATE</p>
+        <h2 id="statusConfirmTitle">Update order status?</h2>
+        <p id="statusConfirmMessage"></p>
+        <p class="status-confirm-warning" id="statusConfirmWarning" hidden></p>
+        <div class="status-confirm-actions">
+            <button type="button" class="status-confirm-cancel" id="cancelStatusUpdate">Keep current status</button>
+            <button type="button" class="status-confirm-submit" id="confirmStatusUpdate">Confirm update</button>
+        </div>
+    </dialog>
 @endsection
 
 @push('styles')
@@ -102,6 +121,20 @@
         .back-link { color: #a995dc; font-size: 9px; text-decoration: none; }
         .status-form { display: flex; align-items: center; gap: 7px; }
         .status-form select { height: 31px; padding: 0 9px; border: 1px solid #302a3b; border-radius: 5px; background: #13111a; color: #eee; font: inherit; font-size: 9px; }
+        .status-confirm-dialog { width: min(420px, calc(100% - 32px)); padding: 26px; border: 1px solid rgba(124,92,240,.5); border-radius: 14px; color: #f3efff; background: #15121c; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,.55), 0 0 32px rgba(124,92,240,.12); }
+        .status-confirm-dialog::backdrop { background: rgba(5,4,10,.78); backdrop-filter: blur(5px); }
+        .status-confirm-icon { display: grid; width: 42px; height: 42px; margin: 0 auto 12px; place-items: center; border: 1px solid rgba(232,195,95,.45); border-radius: 50%; color: #e8c35f; background: rgba(232,195,95,.1); font-size: 20px; font-weight: 700; }
+        .status-confirm-eyebrow { margin: 0 0 6px; color: #b6a5ff; font-size: 9px; font-weight: 600; letter-spacing: 1.6px; }
+        .status-confirm-dialog h2 { margin: 0; font-size: 18px; }
+        .status-confirm-dialog #statusConfirmMessage { margin: 9px 0 0; color: #b8b2c1; font-size: 12px; line-height: 1.6; }
+        .status-confirm-warning { margin: 12px 0 0; padding: 9px 10px; border: 1px solid rgba(232,195,95,.22); border-radius: 6px; color: #e8c35f; background: rgba(232,195,95,.07); font-size: 10px; line-height: 1.5; }
+        .status-confirm-warning[hidden] { display: none; }
+        .status-confirm-actions { display: flex; justify-content: center; gap: 9px; margin-top: 20px; }
+        .status-confirm-actions button { min-height: 38px; padding: 0 14px; border: 1px solid #40384f; border-radius: 7px; color: #d6d0df; background: #1b1823; font: inherit; font-size: 10px; cursor: pointer; }
+        .status-confirm-actions button:hover { border-color: #7862b5; background: #25202f; }
+        .status-confirm-actions .status-confirm-submit { border-color: #7655df; color: #fff; background: #6232e8; font-weight: 600; }
+        .status-confirm-actions .status-confirm-submit:hover { background: #7655f2; }
+        .status-confirm-actions button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
         .order-detail-grid { display: grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.15fr); gap: 14px; align-items: start; }
         .detail-card { min-width: 0; padding: 15px; }
         .detail-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 11px; border-bottom: 1px solid #2b2634; }
@@ -137,4 +170,60 @@
         @media (max-width: 760px) { .order-detail-grid { grid-template-columns: 1fr; } }
         @media (max-width: 480px) { .order-detail-heading { align-items: flex-start; flex-direction: column; }.status-form { width: 100%; }.invoice-actions { justify-content: stretch; }.invoice-actions > *, .invoice-actions form, .invoice-actions button { flex: 1; }.invoice-actions .primary-button, .invoice-actions .secondary-button { width: 100%; } }
     </style>
+@endpush
+
+@push('scripts')
+    <script>
+        const orderStatusForm = document.getElementById('order-status-form');
+        const orderStatusSelect = document.getElementById('order-status');
+        const statusConfirmDialog = document.getElementById('statusConfirmDialog');
+        const statusConfirmWarning = document.getElementById('statusConfirmWarning');
+        let confirmedStatusUpdate = false;
+
+        orderStatusForm.addEventListener('submit', event => {
+            if (confirmedStatusUpdate) {
+                confirmedStatusUpdate = false;
+                return;
+            }
+
+            const previousStatus = orderStatusForm.dataset.currentStatus;
+            const nextStatus = orderStatusSelect.value;
+
+            if (previousStatus === nextStatus) {
+                event.preventDefault();
+                orderStatusSelect.value = previousStatus;
+                return;
+            }
+
+            const orderNumber = orderStatusForm.dataset.orderNumber;
+            const currentLabel = previousStatus.charAt(0).toUpperCase() + previousStatus.slice(1);
+            const nextLabel = nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1);
+            document.getElementById('statusConfirmMessage').textContent =
+                `Update order ${orderNumber} from ${currentLabel} to ${nextLabel}?`;
+
+            if (nextStatus === 'cancelled') {
+                statusConfirmWarning.textContent = 'Cancelling this order will return its items to available inventory.';
+                statusConfirmWarning.hidden = false;
+            } else if (previousStatus === 'cancelled') {
+                statusConfirmWarning.textContent = 'Reopening this order will reserve its items from available inventory.';
+                statusConfirmWarning.hidden = false;
+            } else {
+                statusConfirmWarning.textContent = '';
+                statusConfirmWarning.hidden = true;
+            }
+
+            event.preventDefault();
+            statusConfirmDialog.showModal();
+        });
+
+        document.getElementById('cancelStatusUpdate').addEventListener('click', () => statusConfirmDialog.close());
+        document.getElementById('confirmStatusUpdate').addEventListener('click', () => {
+            confirmedStatusUpdate = true;
+            statusConfirmDialog.close();
+            orderStatusForm.requestSubmit();
+        });
+        statusConfirmDialog.addEventListener('close', () => {
+            if (! confirmedStatusUpdate) orderStatusSelect.value = orderStatusForm.dataset.currentStatus;
+        });
+    </script>
 @endpush

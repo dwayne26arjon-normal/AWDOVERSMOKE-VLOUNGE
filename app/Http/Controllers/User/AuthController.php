@@ -30,7 +30,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             session(['show_splash' => true]);
 
-            return redirect('/welcome');
+            return redirect()->intended('/welcome');
         }
 
         return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
@@ -39,12 +39,15 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
+            'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|min:8|confirmed',
+            'age_confirmation' => 'accepted',
+            'terms_accepted' => 'accepted',
         ]);
 
         User::create([
-            'name'     => explode('@', $data['email'])[0],
+            'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);

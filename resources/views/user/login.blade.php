@@ -150,6 +150,9 @@
         .signup { text-align: center; font-size: 14px; font-weight: 600; }
         .signup a { color: var(--link); text-decoration: none; }
         .signup a:hover { text-decoration: underline; }
+        .legal-links { margin-top: 16px; color: #c8c3d4; font-size: 12px; text-align: center; }
+        .legal-links a { color: var(--link); text-decoration: none; }
+        .legal-links a:hover { text-decoration: underline; }
         .forgot-link { display: block; margin-top: 10px; color: var(--link); font-size: 13px; text-align: center; text-decoration: none; }
         .forgot-link:hover { text-decoration: underline; }
         .status { margin-bottom: 16px; padding: 10px 12px; border: 1px solid rgba(88, 200, 145, .3); border-radius: 7px; background: rgba(25, 115, 72, .14); color: #8de0b0; font-size: 12px; text-align: center; }
@@ -233,6 +236,11 @@
 
             <a class="forgot-link" href="{{ route('password.request') }}">Forgot your password?</a>
             <p class="signup">Don't have an account yet? <a href="{{ url('/go/register') }}">Sign up</a></p>
+            <p class="legal-links">
+                <a href="{{ route('terms') }}">Terms &amp; Conditions</a>
+                <span aria-hidden="true">·</span>
+                <a href="{{ route('privacy') }}">Privacy Policy</a>
+            </p>
         </form>
 
         <div class="mascot">

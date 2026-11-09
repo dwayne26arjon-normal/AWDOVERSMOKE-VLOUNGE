@@ -9,8 +9,92 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('user.splash', ['next' => url('/login')]);
+    return redirect()->route('home');
 });
+
+Route::view('/terms-and-conditions', 'user.legal', [
+    'title' => 'Terms & Conditions',
+    'updated' => 'November 9, 2026',
+    'sections' => [
+        [
+            'heading' => 'Using this site',
+            'paragraphs' => [
+                'By creating an account or placing an order, you agree to these terms. You must provide accurate account and order details and keep your password confidential.',
+                'You must meet the legal age requirement for the products in your location and follow all laws that apply to purchasing, possessing, and receiving them. You may not use this site for unlawful activity or attempt to interfere with its operation.',
+            ],
+        ],
+        [
+            'heading' => 'Accounts',
+            'paragraphs' => [
+                'You are responsible for activity carried out through your account. Contact the store through its official business channel if you believe your account has been accessed without permission.',
+            ],
+        ],
+        [
+            'heading' => 'Products and orders',
+            'paragraphs' => [
+                'Product listings, prices, and stock are subject to change. An order is subject to product availability and confirmation by the store. If an item is unavailable or an order cannot be fulfilled, the store will contact you using the details provided with your account or order.',
+                'The checkout currently offers cash on delivery only; this site does not process online payments. Delivery arrangements and order updates use the contact and address details you provide.',
+            ],
+        ],
+        [
+            'heading' => 'Site availability and changes',
+            'paragraphs' => [
+                'The site and its content may be updated, suspended, or changed. The store may revise these terms by posting an updated version here. Continued use after an update means you accept the revised terms.',
+            ],
+        ],
+        [
+            'heading' => 'Contact',
+            'paragraphs' => [
+                'For questions about these terms or an order, contact OversmokeVlounge through its official business contact channel.',
+            ],
+        ],
+    ],
+])->name('terms');
+
+Route::view('/privacy-policy', 'user.legal', [
+    'title' => 'Privacy Policy',
+    'updated' => 'November 9, 2026',
+    'sections' => [
+        [
+            'heading' => 'Information we collect',
+            'paragraphs' => [
+                'When you use the store, we collect the information you provide, such as your name, email address, and password. If you save profile or checkout details or place an order, we also process the phone number, delivery address, items, and order details you provide.',
+                'Passwords are stored as hashes rather than readable text. The checkout currently accepts cash on delivery and does not collect online payment card details.',
+            ],
+        ],
+        [
+            'heading' => 'How we use information',
+            'paragraphs' => [
+                'We use account and order information to create and secure accounts, provide password-reset assistance, process and manage orders, arrange delivery, respond to customer requests, and maintain the store.',
+            ],
+        ],
+        [
+            'heading' => 'Sharing and storage',
+            'paragraphs' => [
+                'Information may be processed by service providers needed to host, secure, or operate the store, and may be disclosed when required by law.',
+                'We retain information for as long as needed to provide the service, manage orders, and meet applicable legal or operational requirements. Reasonable safeguards are used to protect information, but no online service can guarantee absolute security.',
+            ],
+        ],
+        [
+            'heading' => 'Your choices and requests',
+            'paragraphs' => [
+                'You can update profile information in your account. For questions or requests about your personal information, contact OversmokeVlounge through its official business contact channel. Requests are handled subject to applicable law and records that must be retained.',
+            ],
+        ],
+        [
+            'heading' => 'Age and policy updates',
+            'paragraphs' => [
+                'The store is intended for people who meet the legal age requirement for the products in their location. We may update this policy by posting a revised version here; the date above shows when it was last updated.',
+            ],
+        ],
+        [
+            'heading' => 'Contact',
+            'paragraphs' => [
+                'For privacy questions, contact OversmokeVlounge through its official business contact channel.',
+            ],
+        ],
+    ],
+])->name('privacy');
 
 Route::get('/go/{page}', function ($page) {
     abort_unless(in_array($page, ['login', 'register']), 404);
@@ -48,12 +132,12 @@ Route::get('/home', function () {
         'brands' => Product::query()->where('is_active', true)->whereNotNull('brand')->where('brand', '!=', '')->distinct()->orderBy('brand')->pluck('brand'),
         'maximumPrice' => max(5000, (float) Product::query()->where('is_active', true)->max('price')),
     ]);
-})->middleware(['auth:web', 'customer']);
+})->name('home');
 
 Route::get('/products/{id}', function (int $id) {
     $product = Product::query()->where('is_active', true)->findOrFail($id);
     return view('user.product-details', compact('product'));
-})->whereNumber('id')->middleware(['auth:web', 'customer'])->name('products.show');
+})->whereNumber('id')->name('products.show');
 
 Route::view('/cart', 'user.cart')->middleware(['auth:web', 'customer'])->name('cart');
 Route::view('/checkout', 'user.checkout')->middleware(['auth:web', 'customer'])->name('checkout');

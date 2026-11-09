@@ -40,6 +40,7 @@
                  data-name="{{ $product->name }}"
                  data-brand="{{ $product->brand }}"
                  data-price="{{ $product->price }}"
+                 data-authenticated="{{ auth('web')->check() ? 'true' : 'false' }}"
                  data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
             <div class="product-visual" id="productImagePreview">
                 @if ($product->image_path)
@@ -99,6 +100,17 @@
         <div class="confirm-actions">
             <button type="button" class="confirm-cancel" id="cancelBuyNow">Cancel</button>
             <button type="button" class="confirm-proceed" id="confirmBuyNow">Continue to checkout</button>
+        </div>
+    </dialog>
+    <dialog class="confirm-dialog auth-dialog" id="authDialog" aria-labelledby="authTitle" aria-describedby="authMessage">
+        <div class="confirm-icon" aria-hidden="true">✓</div>
+        <p class="confirm-eyebrow">ONE MORE STEP</p>
+        <h2 id="authTitle">Sign in to continue</h2>
+        <p id="authMessage">Log in or create an account to add this item to your cart.</p>
+        <div class="confirm-actions">
+            <a class="confirm-proceed" href="{{ url('/go/login') }}">Log in</a>
+            <a class="auth-signup" href="{{ url('/go/register') }}">Sign up</a>
+            <button type="button" class="confirm-cancel" id="closeAuthDialog">Not now</button>
         </div>
     </dialog>
     <script src="{{ asset('js/product-details.js') }}?v={{ filemtime(public_path('js/product-details.js')) }}"></script>

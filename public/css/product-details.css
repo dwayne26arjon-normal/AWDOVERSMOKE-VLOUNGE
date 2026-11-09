@@ -84,6 +84,51 @@ h1 { margin: 0; font-size: clamp(27px, 4vw, 40px); line-height: 1.2; }
 .confirm-cancel:hover { background: rgba(124,92,240,.14); }
 .confirm-proceed { background: var(--primary); }
 .confirm-proceed:hover { background: #6542e5; }
+.auth-dialog .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+.auth-dialog .confirm-actions a {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.auth-dialog .confirm-actions a:hover { transform: translateY(-1px); }
+.auth-dialog .confirm-actions a:focus-visible,
+.auth-dialog .confirm-actions button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
+.auth-dialog .confirm-actions .confirm-proceed {
+    background: linear-gradient(135deg, #8b6cff, #6542e5);
+    box-shadow: 0 7px 20px rgba(124,92,240,.28);
+}
+.auth-dialog .confirm-actions .confirm-proceed:hover {
+    background: linear-gradient(135deg, #9a82ff, #7655f2);
+    box-shadow: 0 9px 24px rgba(124,92,240,.38);
+}
+.auth-dialog .confirm-actions .auth-signup {
+    border-color: #514476;
+    color: #e4dcff;
+    background: rgba(124,92,240,.08);
+}
+.auth-dialog .confirm-actions .auth-signup:hover {
+    border-color: #927cf3;
+    background: rgba(124,92,240,.18);
+}
+.auth-dialog .confirm-actions .confirm-cancel {
+    grid-column: 1 / -1;
+    justify-self: center;
+    min-height: 32px;
+    padding: 0 14px;
+    border: 0;
+    color: #a4a4b7;
+    background: transparent;
+    font-size: 12px;
+}
+.auth-dialog .confirm-actions .confirm-cancel:hover { color: #fff; background: transparent; }
 
 @media (max-width: 900px) {
     .page { width: min(820px, calc(100% - 40px)); }
@@ -118,6 +163,8 @@ h1 { margin: 0; font-size: clamp(27px, 4vw, 40px); line-height: 1.2; }
     .actions { flex-direction: column; }
     .actions button { width: 100%; padding: 0 16px; }
     .confirm-dialog { padding: 24px 18px; }
+    .auth-dialog .confirm-actions { gap: 10px; }
+    .auth-dialog .confirm-actions a { min-height: 44px; padding: 0 12px; }
     .confirm-actions { flex-direction: column-reverse; }
     .confirm-actions button { width: 100%; }
 }

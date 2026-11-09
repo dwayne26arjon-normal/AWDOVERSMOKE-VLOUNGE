@@ -70,31 +70,31 @@
 
         .card {
             width: 100%;
-            max-width: 460px;
+            max-width: 430px;
             background: var(--card);
             border: 1px solid var(--card-border);
             border-radius: 18px;
-            padding: 36px 40px 32px;
+            padding: 28px 32px 24px;
         }
 
-        .brand { text-align: center; margin-bottom: 28px; }
-        .brand img { width: 260px; max-width: 100%; display: block; margin: 0 auto 4px; }
-        .brand h1 { font-size: 24px; font-weight: 600; }
+        .brand { text-align: center; margin-bottom: 18px; }
+        .brand img { width: 220px; max-width: 100%; display: block; margin: 0 auto 4px; }
+        .brand h1 { font-size: 21px; font-weight: 600; }
 
-        .field { margin-bottom: 16px; }
-        .field label { display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 
         .input-wrap { position: relative; }
 
         .input-wrap input {
             width: 100%;
-            height: 52px;
+            height: 48px;
             background: var(--field);
             border: 1px solid var(--field-border);
             border-radius: 8px;
             padding: 0 52px 0 16px;
             font: inherit;
-            font-size: 16px;
+            font-size: 15px;
             color: var(--text);
         }
 
@@ -125,20 +125,38 @@
         .toggle.showing .eye-open { display: block; }
         .toggle.showing .eye-closed { display: none; }
 
-        .error { color: #ff6b6b; font-size: 14px; margin-top: 6px; }
+        .error { color: #ff6b6b; font-size: 12px; margin-top: 5px; }
+
+        .age-confirmation { margin: 3px 0 12px; }
+        .age-confirmation label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .age-confirmation input {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: var(--primary);
+        }
+        .age-confirmation a { color: var(--link); }
 
         .btn {
             display: block;
             width: min(280px, 100%);
             max-width: 100%;
-            height: 50px;
-            margin: 26px auto 14px;
+            height: 46px;
+            margin: 18px auto 12px;
             background: var(--primary);
             color: var(--text);
             border: 0;
             border-radius: 10px;
             font: inherit;
-            font-size: 19px;
+            font-size: 17px;
             font-weight: 700;
             cursor: pointer;
             transition: background .15s;
@@ -153,18 +171,13 @@
 
         .mascot { flex: 0 1 580px; min-width: 0; }
 
-        /* shorter screens (laptops): tighten the card so it fits */
-        @media (max-height: 880px) {
-            .card { padding: 36px 52px 32px; }
-            .brand { margin-bottom: 24px; }
-            .brand img { width: 280px; }
-            .brand h1 { font-size: 24px; }
-            .field { margin-bottom: 16px; }
-            .field label { font-size: 18px; margin-bottom: 8px; }
-            .input-wrap input { height: 52px; font-size: 17px; }
-            .toggle { width: 40px; height: 40px; }
-            .btn { height: 50px; font-size: 20px; margin: 26px auto 14px; }
-            .login-link { font-size: 15px; }
+        @media (max-height: 760px) and (min-width: 601px) {
+            .card { padding-top: 22px; padding-bottom: 18px; }
+            .brand { margin-bottom: 12px; }
+            .brand img { width: 190px; }
+            .field { margin-bottom: 9px; }
+            .age-confirmation { margin-bottom: 8px; }
+            .btn { margin-top: 12px; }
         }
 
         @media (max-width: 1000px) {
@@ -173,16 +186,17 @@
         }
 
         @media (max-width: 600px) {
-            body { padding: 16px; }
-            .card { padding: 30px 22px 26px; border-radius: 16px; }
-            .brand { margin-bottom: 30px; }
-            .brand img { width: min(240px, 100%); }
-            .brand h1 { font-size: 22px; }
-            .field { margin-bottom: 20px; }
-            .field label { margin-bottom: 8px; font-size: 16px; }
-            .input-wrap input { height: 54px; padding: 0 54px 0 14px; font-size: 16px; }
+            body { padding: 14px; }
+            .card { padding: 24px 20px 20px; border-radius: 16px; }
+            .brand { margin-bottom: 18px; }
+            .brand img { width: min(210px, 100%); }
+            .brand h1 { font-size: 20px; }
+            .field { margin-bottom: 12px; }
+            .field label { margin-bottom: 6px; font-size: 14px; }
+            .input-wrap input { height: 48px; padding: 0 48px 0 14px; font-size: 16px; }
             .toggle { width: 42px; height: 42px; }
-            .btn { height: 50px; margin: 28px auto 16px; font-size: 18px; }
+            .age-confirmation { margin-bottom: 12px; }
+            .btn { height: 46px; margin: 18px auto 12px; font-size: 17px; }
             .login-link { font-size: 14px; }
         }
     </style>
@@ -198,6 +212,16 @@
             <div class="brand">
                 <img src="{{ asset('images/oversmokev-logo.png') }}" alt="OversmokeVlounge">
                 <h1>Create an account to continue</h1>
+            </div>
+
+            <div class="field">
+                <label for="name">Full Name</label>
+                <div class="input-wrap">
+                    <input type="text" id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="255" required>
+                </div>
+                @error('name')
+                    <p class="error">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="field">
@@ -249,6 +273,26 @@
                         </svg>
                     </button>
                 </div>
+            </div>
+
+            <div class="age-confirmation">
+                <label for="age_confirmation">
+                    <input type="checkbox" id="age_confirmation" name="age_confirmation" value="1" @checked(old('age_confirmation')) required>
+                    <span>I confirm that I meet the legal age requirement to purchase these products in my location.</span>
+                </label>
+                @error('age_confirmation')
+                    <p class="error">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="age-confirmation">
+                <label for="terms_accepted">
+                    <input type="checkbox" id="terms_accepted" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
+                    <span>I agree to the <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms &amp; Conditions</a> and acknowledge the <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                </label>
+                @error('terms_accepted')
+                    <p class="error">{{ $message }}</p>
+                @enderror
             </div>
 
             <button type="submit" class="btn">CREATE</button>

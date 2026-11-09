@@ -30,7 +30,49 @@
     position: relative;
     display: flex;
     align-items: center;
+    gap: 10px;
     margin-left: 18px;
+}
+
+.guest-auth-link {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 15px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.guest-auth-link:hover { transform: translateY(-1px); }
+.guest-auth-link:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
+
+.guest-login {
+    border-color: rgba(167,139,250,.5);
+    color: #e6e0ff;
+    background: rgba(124,92,240,.08);
+}
+
+.guest-login:hover {
+    border-color: #a78bfa;
+    background: rgba(124,92,240,.18);
+}
+
+.guest-signup {
+    color: #fff;
+    background: linear-gradient(135deg, #8b6cff, #6542e5);
+    box-shadow: 0 5px 16px rgba(124,92,240,.24);
+}
+
+.guest-signup:hover {
+    background: linear-gradient(135deg, #9a82ff, #7655f2);
+    box-shadow: 0 7px 20px rgba(124,92,240,.34);
 }
 
 .topbar-actions {
@@ -149,6 +191,11 @@
         padding: 6px 8px;
     }
 
+    .guest-auth-link {
+        min-height: 36px;
+        padding: 0 11px;
+    }
+
     .account-greeting {
         display: none;
     }
@@ -156,7 +203,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .topbar nav a::after,
-    .account-button {
+    .account-button,
+    .guest-auth-link {
         transition: none;
     }
 }

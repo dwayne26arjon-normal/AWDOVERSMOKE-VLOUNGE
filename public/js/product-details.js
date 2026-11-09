@@ -3,6 +3,7 @@
     const quantityOutput = document.getElementById('quantity');
     const subtotal = document.getElementById('subtotal');
     const buyNowDialog = document.getElementById('buyNowDialog');
+    const authDialog = document.getElementById('authDialog');
     const quantityValue = Number(quantityOutput.textContent);
     const unitPrice = Number(product.dataset.price);
     let quantity = quantityValue;
@@ -88,6 +89,14 @@
     });
 
     function addToCart() {
+        if (product.dataset.authenticated !== 'true') {
+            document.getElementById('authTitle').textContent = 'Sign in to add to cart';
+            document.getElementById('authMessage').textContent =
+                'Log in or create an account to add this item to your cart.';
+            authDialog.showModal();
+            return;
+        }
+
         const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
         const matchingItem = cart.find(item => item.id === Number(product.dataset.id) && item.color === color);
 
@@ -107,16 +116,25 @@
 
         localStorage.setItem('oversmoke-cart', JSON.stringify(cart));
         syncCartCount();
-        document.getElementById('statusMessage').textContent = 'Added to cart. Checkout is not available yet.';
+        document.getElementById('statusMessage').textContent = 'Added to cart.';
     }
 
     document.getElementById('addToCart').addEventListener('click', addToCart);
     document.getElementById('buyNow').addEventListener('click', () => {
+        if (product.dataset.authenticated !== 'true') {
+            document.getElementById('authTitle').textContent = 'Sign in to purchase';
+            document.getElementById('authMessage').textContent =
+                'Log in or create an account before purchasing this item.';
+            authDialog.showModal();
+            return;
+        }
+
         document.getElementById('confirmMessage').textContent =
             `Proceed to checkout with ${quantity} × ${product.dataset.name} in ${color}?`;
         buyNowDialog.showModal();
     });
 
+    document.getElementById('closeAuthDialog').addEventListener('click', () => authDialog.close());
     document.getElementById('cancelBuyNow').addEventListener('click', () => buyNowDialog.close());
     document.getElementById('confirmBuyNow').addEventListener('click', () => {
         const item = {

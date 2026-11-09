@@ -30,6 +30,8 @@ class AdminOrderManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Customer information')
             ->assertSee('Ordered items')
+            ->assertSee('statusConfirmDialog', false)
+            ->assertSee('Update order status?')
             ->assertSee('Cloud Berry')
             ->assertSee('₱900.00')
             ->assertSee(route('admin.orders.invoice', $order), false)
