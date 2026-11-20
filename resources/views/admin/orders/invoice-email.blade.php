@@ -1,6 +1,6 @@
 <h1>Oversmoke Vlounge order invoice</h1>
 <p>Hello {{ $order->customer_name }},</p>
-<p>Here is the invoice for your order <strong>{{ $order->order_number }}</strong>, placed {{ $order->created_at->format('F j, Y') }}.</p>
+<p>Here is the invoice for your order <strong>{{ $order->order_number }}</strong>, placed {{ $order->created_at->timezone(config('app.timezone'))->format('F j, Y') }}.</p>
 <h2>Items</h2>
 <table width="100%" cellpadding="8" cellspacing="0" border="1">
     <thead><tr><th align="left">Product</th><th>Qty</th><th align="right">Total</th></tr></thead>

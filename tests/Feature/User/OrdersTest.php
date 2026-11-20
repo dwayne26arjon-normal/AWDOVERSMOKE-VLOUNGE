@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -144,5 +145,63 @@ class OrdersTest extends TestCase
             ->assertSee($ownOrder->order_number)
             ->assertDontSee('OS-000002')
             ->assertSee('Saved to your account');
+    }
+
+    public function test_customer_order_updates_return_only_their_current_statuses(): void
+    {
+        $customer = User::factory()->create();
+        $otherCustomer = User::factory()->create();
+        $attributes = [
+            'customer_name' => 'Test Customer',
+            'customer_email' => 'customer@example.com',
+            'customer_phone' => '09123456789',
+            'delivery_address' => '123 Example Street',
+            'payment_method' => 'Cash on delivery',
+            'subtotal' => 450,
+            'shipping_fee' => 0,
+            'total' => 450,
+        ];
+        $ownOrder = Order::create($attributes + ['user_id' => $customer->id]);
+        Order::create($attributes + ['user_id' => $otherCustomer->id]);
+
+        $response = $this->actingAs($customer)
+            ->getJson(route('orders.updates'))
+            ->assertOk();
+
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $response->assertJsonCount(1, 'orders')
+            ->assertJsonPath('orders.0.id', $ownOrder->id)
+            ->assertJsonPath('orders.0.status', 'processing');
+
+        $ownOrder->update(['status' => 'shipped']);
+
+        $this->actingAs($customer)
+            ->getJson(route('orders.updates'))
+            ->assertJsonPath('orders.0.status', 'shipped');
+    }
+
+    public function test_customer_order_page_displays_manila_purchase_time(): void
+    {
+        $this->assertSame('Asia/Manila', config('app.timezone'));
+        $customer = User::factory()->create();
+        $order = Order::create([
+            'user_id' => $customer->id,
+            'customer_name' => 'Test Customer',
+            'customer_email' => $customer->email,
+            'customer_phone' => '09123456789',
+            'delivery_address' => '123 Example Street',
+            'payment_method' => 'Cash on delivery',
+            'subtotal' => 450,
+            'shipping_fee' => 0,
+            'total' => 450,
+        ]);
+        $order->created_at = Carbon::parse('2026-11-20 09:00:00', 'Asia/Manila');
+        $order->save();
+
+        $this->actingAs($customer)
+            ->get(route('orders'))
+            ->assertOk()
+            ->assertSee('Placed Nov 20, 2026 · 9:00 AM')
+            ->assertSee($order->order_number);
     }
 }

@@ -166,6 +166,7 @@
                      id="adminNotifications"
                      data-endpoint="{{ route('admin.orders.notifications') }}"
                      data-admin-id="{{ auth('admin')->id() }}"
+                     data-refresh-on-new-order="{{ request()->routeIs('admin.dashboard', 'admin.orders.index') ? 'true' : 'false' }}"
                      data-order-url-template="{{ route('admin.orders.show', ['order' => '__ORDER_ID__']) }}">
                     <button class="notification-button" id="notificationButton" type="button" aria-label="Order notifications" aria-expanded="false" aria-controls="notificationMenu">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>

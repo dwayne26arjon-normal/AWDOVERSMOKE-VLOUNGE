@@ -37,7 +37,7 @@
             <div class="detail-card-heading">
                 <div>
                     <h2 class="panel-title">Order #{{ $order->order_number }}</h2>
-                    <p class="panel-subtitle">Placed {{ $order->created_at->format('F j, Y \a\t g:i A') }}</p>
+                    <p class="panel-subtitle">Placed {{ $order->created_at->timezone(config('app.timezone'))->format('F j, Y \a\t g:i A') }}</p>
                 </div>
                 <span class="order-status-badge status-{{ $order->status }}">{{ ucfirst($order->status) }}</span>
             </div>

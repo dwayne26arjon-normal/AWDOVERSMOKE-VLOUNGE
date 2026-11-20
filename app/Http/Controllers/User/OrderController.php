@@ -25,6 +25,17 @@ class OrderController extends Controller
         ]);
     }
 
+    public function updates(Request $request): JsonResponse
+    {
+        $orders = Order::query()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get(['id', 'status']);
+
+        return response()->json(['orders' => $orders])
+            ->header('Cache-Control', 'no-store');
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([

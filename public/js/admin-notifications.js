@@ -12,6 +12,7 @@
     const orderUrl = root.dataset.orderUrlTemplate;
     let notifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
     let toastTimer;
+    let checking = false;
 
     function saveNotifications() {
         localStorage.setItem(storageKey, JSON.stringify(notifications));
@@ -63,37 +64,46 @@
     }
 
     async function checkForOrders() {
-        if (document.visibilityState !== 'visible') return;
+        if (document.visibilityState !== 'visible' || checking) return;
 
-        const cursor = localStorage.getItem(cursorKey);
-        const url = new URL(root.dataset.endpoint, window.location.origin);
-        if (cursor !== null) url.searchParams.set('after', cursor);
+        checking = true;
+        try {
+            const cursor = localStorage.getItem(cursorKey);
+            const url = new URL(root.dataset.endpoint, window.location.origin);
+            if (cursor !== null) url.searchParams.set('after', cursor);
 
-        const response = await fetch(url, {
-            headers: { Accept: 'application/json' },
-            credentials: 'same-origin'
-        });
-        if (!response.ok) throw new Error(`Order notification request failed with status ${response.status}.`);
-        const payload = await response.json();
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error(`Order notification request failed with status ${response.status}.`);
+            const payload = await response.json();
 
-        localStorage.setItem(cursorKey, String(payload.cursor));
-        if (cursor === null || !payload.orders.length) return;
+            localStorage.setItem(cursorKey, String(payload.cursor));
+            if (cursor === null || !payload.orders.length) return;
 
-        const knownIds = new Set(notifications.map(notification => notification.id));
-        const freshOrders = payload.orders.filter(order => !knownIds.has(order.id));
-        if (!freshOrders.length) return;
+            const knownIds = new Set(notifications.map(notification => notification.id));
+            const freshOrders = payload.orders.filter(order => !knownIds.has(order.id));
+            if (!freshOrders.length) return;
 
-        notifications = [...notifications, ...freshOrders].slice(-30);
-        saveNotifications();
-        renderNotifications();
-        showToast(freshOrders[freshOrders.length - 1]);
+            notifications = [...notifications, ...freshOrders].slice(-30);
+            saveNotifications();
+            renderNotifications();
+            showToast(freshOrders[freshOrders.length - 1]);
+
+            if (root.dataset.refreshOnNewOrder === 'true') {
+                window.setTimeout(() => window.location.reload(), 1200);
+            }
+        } finally {
+            checking = false;
+        }
     }
 
     renderNotifications();
     checkForOrders().catch(error => console.error('Unable to check for new orders.', error));
     window.setInterval(() => {
         checkForOrders().catch(error => console.error('Unable to check for new orders.', error));
-    }, 10000);
+    }, 5000);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             checkForOrders().catch(error => console.error('Unable to check for new orders.', error));

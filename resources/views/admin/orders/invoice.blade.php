@@ -24,7 +24,7 @@
 <body>
     <header>
         <div><h1>Oversmoke Vlounge</h1><p>Customer order invoice</p></div>
-        <div><strong>Invoice {{ $order->order_number }}</strong><p>{{ $order->created_at->format('F j, Y g:i A') }}</p></div>
+        <div><strong>Invoice {{ $order->order_number }}</strong><p>{{ $order->created_at->timezone(config('app.timezone'))->format('F j, Y g:i A') }}</p></div>
     </header>
     <section>
         <h2>Bill to / Deliver to</h2>

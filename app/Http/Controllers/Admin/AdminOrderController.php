@@ -202,6 +202,12 @@ class AdminOrderController extends Controller
 
     public function emailInvoice(Order $order): RedirectResponse
     {
+        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+            return back()->withErrors([
+                'invoice' => 'Email delivery is not configured on this server. Configure SMTP in the hosting environment and try again.',
+            ]);
+        }
+
         try {
             Mail::to($order->customer_email)->send(new OrderInvoiceMail($order->load('items')));
         } catch (TransportExceptionInterface $exception) {

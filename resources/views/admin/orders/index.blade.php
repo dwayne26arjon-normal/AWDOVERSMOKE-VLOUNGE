@@ -52,7 +52,7 @@
                         <tr>
                             <td><a class="order-number" href="{{ route('admin.orders.show', $order) }}">#{{ $order->order_number }}</a></td>
                             <td><span class="product-name">{{ $order->customer_name }}</span><span class="product-meta">{{ $order->customer_email }}</span></td>
-                            <td>{{ $order->created_at->format('M j, Y · g:i A') }}</td>
+                            <td>{{ $order->created_at->timezone(config('app.timezone'))->format('M j, Y · g:i A') }}</td>
                             <td>{{ $order->items_count }} {{ \Illuminate\Support\Str::plural('item', $order->items_count) }}</td>
                             <td>₱{{ number_format((float) $order->total, 2) }}</td>
                             <td><span class="order-status-badge status-{{ $order->status }}">{{ ucfirst($order->status) }}</span></td>

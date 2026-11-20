@@ -79,6 +79,7 @@ class AdminOrderManagementTest extends TestCase
 
     public function test_admin_can_email_invoice_to_customer(): void
     {
+        config(['mail.default' => 'smtp']);
         Mail::fake();
         $admin = $this->createAdmin();
         $order = $this->createOrder();
@@ -92,6 +93,24 @@ class AdminOrderManagementTest extends TestCase
             return $mail->hasTo($order->customer_email)
                 && $mail->order->is($order);
         });
+    }
+
+    public function test_invoice_is_not_reported_as_sent_when_mailer_only_logs_messages(): void
+    {
+        config(['mail.default' => 'log']);
+        Mail::fake();
+        $admin = $this->createAdmin();
+        $order = $this->createOrder();
+
+        $this->actingAs($admin, 'admin')
+            ->from(route('admin.orders.show', $order))
+            ->post(route('admin.orders.invoice.email', $order))
+            ->assertRedirect(route('admin.orders.show', $order))
+            ->assertSessionHasErrors([
+                'invoice' => 'Email delivery is not configured on this server. Configure SMTP in the hosting environment and try again.',
+            ]);
+
+        Mail::assertNothingSent();
     }
 
     public function test_admin_can_download_sales_csv_for_today(): void

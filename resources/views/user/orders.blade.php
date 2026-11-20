@@ -23,7 +23,10 @@
         .order-list-note[hidden] { display: none; }
     </style>
 </head>
-<body data-user-id="{{ auth('web')->id() }}">
+<body
+    data-user-id="{{ auth('web')->id() }}"
+    data-orders-updates-url="{{ route('orders.updates') }}"
+>
     <div class="smoke"></div>
     <header class="topbar">
         <a class="logo" href="{{ url('/home') }}">
@@ -67,13 +70,13 @@
         @else
             <section class="orders-list" aria-label="Order history">
                 @foreach ($orders as $order)
-                    <article class="order-card">
+                    <article class="order-card" data-order-id="{{ $order->id }}">
                         <header class="order-header">
                             <div class="order-reference">
                                 <strong>{{ $order->order_number }}</strong>
-                                <span class="order-date">Placed {{ $order->created_at->format('M j, Y · g:i A') }}</span>
+                                <span class="order-date">Placed {{ $order->created_at->timezone(config('app.timezone'))->format('M j, Y · g:i A') }}</span>
                             </div>
-                            <span class="order-status status-{{ $order->status }}">{{ ucfirst($order->status) }}</span>
+                            <span class="order-status status-{{ $order->status }}" data-order-status>{{ ucfirst($order->status) }}</span>
                         </header>
                         <div class="order-products">
                             @foreach ($order->items as $item)
@@ -113,5 +116,6 @@
         document.getElementById('cartCount').textContent = JSON.parse(localStorage.getItem(cartKey) || '[]').length;
     </script>
     <script src="{{ asset('js/account-menu.js') }}?v={{ filemtime(public_path('js/account-menu.js')) }}"></script>
+    <script src="{{ asset('js/user-orders-live.js') }}?v={{ filemtime(public_path('js/user-orders-live.js')) }}"></script>
 </body>
 </html>

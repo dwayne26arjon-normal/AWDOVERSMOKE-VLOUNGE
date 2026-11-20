@@ -143,6 +143,7 @@ Route::get('/products/{id}', function (int $id) {
 Route::view('/cart', 'user.cart')->middleware(['auth:web', 'customer'])->name('cart');
 Route::view('/checkout', 'user.checkout')->middleware(['auth:web', 'customer'])->name('checkout');
 Route::middleware(['auth:web', 'customer'])->group(function () {
+    Route::get('/orders/updates', [OrderController::class, 'updates'])->name('orders.updates');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
 });
