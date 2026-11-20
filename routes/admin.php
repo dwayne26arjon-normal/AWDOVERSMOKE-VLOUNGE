@@ -13,6 +13,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminProductController::class, 'dashboard'])->name('dashboard');
+        Route::get('/orders/notifications', [AdminOrderController::class, 'notifications'])->name('orders.notifications');
+        Route::get('/orders/export/sales', [AdminOrderController::class, 'exportSalesCsv'])->name('orders.sales.export');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::put('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status');

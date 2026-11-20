@@ -10,8 +10,8 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; animation: pageIn .8s ease both; }
+html, body { min-height: 100%; }
+body { min-height: 100vh; font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: auto; animation: pageIn .8s ease both; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
 
@@ -36,11 +36,11 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 #fx { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
 /* ---------- Layout ---------- */
-.layout { position: relative; z-index: 1; display: grid; grid-template-columns: 260px 1fr; height: 100vh; overflow: hidden; }
-.main { display: flex; flex-direction: column; height: 100vh; min-width: 0; min-height: 0; }
+.layout { position: relative; z-index: 1; display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
 
 /* ---------- Sidebar ---------- */
-.sidebar { background: rgba(13,13,13,.92); border-right: 1px solid var(--line); padding: 20px 20px 40px; height: 100vh; overflow-y: auto; animation: slideRight .8s cubic-bezier(.2,.8,.2,1) both; }
+.sidebar { position: sticky; top: 0; align-self: start; background: rgba(13,13,13,.92); border-right: 1px solid var(--line); padding: 20px 20px 40px; height: 100vh; overflow-y: auto; animation: slideRight .8s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes slideRight { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; margin-bottom: 24px; }
 .logo img { width: 44px; height: 44px; object-fit: contain; }
@@ -108,11 +108,11 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .user-menu form { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
 .user-menu button:hover, .user-menu a:hover { background: var(--field); }
 
-/* ---------- Banner (mas malaki) ---------- */
+/* ---------- Banner ---------- */
 .banner { flex-shrink: 0; position: relative; overflow: hidden;
           height: clamp(240px, 36vh, 380px);
           background: linear-gradient(120deg, #1a0f3d 0%, #3b1fa8 55%, #1b0f45 100%) center / cover no-repeat;
-          display: flex; flex-direction: column; justify-content: center; padding: 0 48px;
+          display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 24px 48px;
           border-bottom: 1px solid var(--line); animation: fadeUp .9s .25s ease both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .banner > * { position: relative; z-index: 2; }
@@ -123,7 +123,8 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 @keyframes float2 { to { transform: translate(80px, -40px) scale(1.3); } }
 
 .banner small { font-size: 16px; letter-spacing: 1px; }
-.banner h2 { font-size: clamp(56px, 7vw, 100px); line-height: 1.05; font-weight: 700; width: fit-content;
+.banner-copy { position: relative; z-index: 2; flex: 0 1 42%; min-width: 0; }
+.banner h2 { font-size: clamp(56px, 6vw, 92px); line-height: 1.05; font-weight: 700; width: fit-content; white-space: nowrap;
              background: linear-gradient(90deg, #7c5cf0, #c4b5fd, #60a5fa, #7c5cf0); background-size: 300% 100%;
              -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
              animation: shimmer 4s linear infinite; filter: drop-shadow(0 0 18px rgba(124,92,240,.6)); }
@@ -134,9 +135,36 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .banner .shop::after { content: ""; position: absolute; top: 0; left: -80%; width: 50%; height: 100%; background: linear-gradient(120deg, transparent, rgba(255,255,255,.45), transparent); transform: skewX(-20deg); }
 .banner .shop:hover::after { left: 130%; transition: left .6s ease; }
 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(79,31,240,.6); } 50% { box-shadow: 0 0 22px 6px rgba(79,31,240,.45); } }
+.banner-featured { position: relative; z-index: 2; display: flex; flex: 0 1 58%; align-self: stretch; min-width: 0; max-width: none; }
+.featured-carousel { position: relative; width: 100%; height: 100%; min-height: 0; padding: 8px 48px 34px 0; }
+.featured-carousel-track { height: 100%; min-height: 0; }
+.featured-slide { position: relative; display: block; height: 100%; min-height: 0; }
+.featured-slide[hidden] { display: none; }
+.featured-slide.is-active { animation: featuredEnter .45s ease both; }
+.featured-slide.is-active.slide-next { animation-name: featuredEnterFromRight; }
+.featured-slide.is-active.slide-previous { animation-name: featuredEnterFromLeft; }
+@keyframes featuredEnter { from { opacity: 0; translate: 12px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes featuredEnterFromRight { from { opacity: 0; translate: 36px 0; scale: .98; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes featuredEnterFromLeft { from { opacity: 0; translate: -36px 0; scale: .98; } to { opacity: 1; translate: 0 0; scale: 1; } }
+.featured-slide::before { position: absolute; top: 4%; right: 2%; bottom: 4%; width: 66%; border-radius: 50%; background: radial-gradient(ellipse, rgba(125,82,255,.48), rgba(59,76,210,.22) 46%, transparent 74%); content: ""; filter: blur(24px); pointer-events: none; }
+.featured-product-image { position: absolute; top: 50%; right: 0; z-index: 1; display: flex; width: 100%; max-width: none; aspect-ratio: 3 / 1; align-items: center; justify-content: center; overflow: hidden; padding: 7px; border: 1px solid rgba(220,205,255,.62); border-radius: 20px; background: linear-gradient(145deg, rgba(14,12,32,.94), rgba(50,25,104,.86) 48%, rgba(19,38,92,.88)); box-shadow: 0 18px 40px rgba(0,0,0,.4), 0 0 28px rgba(130,92,255,.4), inset 0 1px rgba(255,255,255,.42); transform: translateY(-50%); }
+.featured-product-image::before { position: absolute; inset: -35%; background: conic-gradient(from 25deg, transparent, rgba(196,181,253,.28), transparent 28%, rgba(65,150,255,.24), transparent 58%); content: ""; animation: featuredOrbit 16s linear infinite; }
+.featured-product-image::after { position: absolute; inset: 7px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: linear-gradient(135deg, rgba(255,255,255,.12), transparent 35%); content: ""; pointer-events: none; }
+@keyframes featuredOrbit { to { rotate: 360deg; } }
+.featured-product-image img, .featured-product-image .banner-featured-cutout { position: relative; z-index: 1; display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; border-radius: 13px; object-fit: contain; object-position: center; filter: drop-shadow(0 8px 12px rgba(0,0,0,.4)); animation: featuredFloat 4.2s ease-in-out infinite; }
+.featured-product-image img.featured-artwork { object-fit: cover; }
+@keyframes featuredFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+.banner-featured-placeholder { width: 42px; height: 110px; border: 2px solid rgba(255,255,255,.3); border-radius: 12px 12px 18px 18px; background: linear-gradient(110deg, #313242, #12121b 44%, #59566c 70%, #15141f); box-shadow: 0 18px 30px rgba(0,0,0,.35); }
+.featured-carousel-controls { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; }
+.featured-carousel-arrow { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid rgba(255,255,255,.22); border-radius: 50%; background: rgba(14,12,32,.75); transition: background .2s, border-color .2s; }
+.featured-carousel-arrow:hover, .featured-carousel-arrow:focus-visible { border-color: #b7a5ff; background: rgba(79,31,240,.75); }
+.featured-carousel-arrow svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.featured-carousel-dots { display: flex; align-items: center; gap: 5px; }
+.featured-carousel-dot { width: 7px; height: 7px; padding: 0; border-radius: 50%; background: rgba(255,255,255,.42); transition: width .2s, background .2s; }
+.featured-carousel-dot[aria-current="true"] { width: 18px; border-radius: 999px; background: #c4b5fd; }
 
 /* ---------- Scrollable products area ---------- */
-.content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 32px 40px; scroll-behavior: smooth; }
+.content { flex: 1; min-height: 0; overflow: visible; padding: 0 32px 40px; scroll-behavior: smooth; }
 
 .toolbar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; align-items: center; gap: 14px;
            padding: 16px 0; margin-bottom: 10px; background: rgba(11,11,18,.82); backdrop-filter: blur(10px); }
@@ -151,8 +179,8 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
         background: #101018; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;
         transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(var(--ty));
         transition: transform .25s ease, box-shadow .3s, border-color .3s; will-change: transform; }
-.card.enter { animation: cardIn .7s var(--d, 0ms) cubic-bezier(.2,.8,.2,1) backwards; }
-@keyframes cardIn { from { opacity: 0; transform: translateY(50px) scale(.9) rotateX(12deg); } }
+.card.scroll-reveal { opacity: 0; transition: opacity .4s ease; }
+.card.scroll-reveal.is-visible { opacity: 1; }
 .card:hover { --ty: -8px; border-color: #7c5cf0; box-shadow: 0 18px 40px -10px rgba(124,92,240,.55), 0 0 0 1px rgba(124,92,240,.35); }
 
 .card .img { position: relative; height: 170px; display: grid; place-items: center; background: #14141f; }
@@ -164,6 +192,7 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .card:hover .placeholder, .card:hover .img img { transform: scale(1.12); }
 
 .info { padding: 14px; border-top: 1px solid var(--line); }
+.featured-label { display: inline-flex; align-items: center; margin-bottom: 5px; padding: 3px 8px; border: 1px solid rgba(147,114,255,.35); border-radius: 999px; background: rgba(79,31,240,.16); color: #c4b5fd; font-size: 9px; font-weight: 600; letter-spacing: .03em; }
 .info h3 { font-size: 15px; font-weight: 600; }
 .info .brand { font-size: 13px; color: var(--muted); }
 .info .price { font-size: 13px; margin: 6px 0 10px; }
@@ -218,7 +247,7 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .main { display: contents; }
     .topbar { order: 0; }
     .banner { order: 1; }
-    .sidebar { order: 2; display: block; height: auto; padding: 14px 24px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
+    .sidebar { position: static; order: 2; display: block; height: auto; padding: 14px 24px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
     .sidebar .logo { display: none; }
     .filters-head { padding: 0; border: 0; }
     .filter-drawer { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(16,16,24,.82); }
@@ -234,6 +263,10 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .content { order: 3; }
     .topbar { gap: 16px; padding: 0 20px; }
     .search { margin-left: 0; flex-basis: 260px; }
+    .banner { gap: 18px; padding-right: 28px; padding-left: 28px; }
+    .banner-featured { flex-basis: 50%; }
+    .featured-carousel { padding-right: 36px; }
+    .featured-product-image { width: min(100%, 500px); }
 }
 
 @media (max-width: 700px) {
@@ -247,11 +280,15 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .sidebar { padding: 12px 16px; }
     .filter-drawer-hint { font-size: 9px; }
     .filter-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
-    .banner { height: 250px; padding: 0 20px; }
+    .banner { height: auto; min-height: 0; flex-direction: column; align-items: stretch; gap: 8px; padding: 18px 20px; }
+    .banner-copy { flex: 0 0 auto; }
     .banner small { font-size: 13px; }
-    .banner h2 { font-size: clamp(42px, 12vw, 64px); }
-    .banner p { max-width: 280px; font-size: 14px; }
-    .banner .shop { padding: 10px 20px; font-size: 14px; }
+    .banner h2 { font-size: clamp(38px, 10vw, 54px); }
+    .banner p { max-width: 280px; margin: 4px 0 10px; font-size: 13px; }
+    .banner .shop { padding: 8px 16px; font-size: 13px; }
+    .banner-featured { width: 100%; max-width: none; min-height: 184px; flex: 0 0 184px; }
+    .featured-carousel { padding: 0 38px 32px 0; }
+    .featured-product-image { top: 50%; right: 4px; width: min(100%, 420px); }
     .content { padding: 0 16px 30px; }
     .grid { gap: 12px; }
     .card .img { height: 145px; }
@@ -270,6 +307,10 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .grid.list .card { flex-direction: column; }
     .grid.list .card .img { width: 100%; height: 160px; }
     .grid.list .info { border-left: 0; border-top: 1px solid var(--line); }
+    .banner { padding: 14px 16px; }
+    .banner-featured { min-height: 168px; flex-basis: 168px; }
+    .featured-carousel { padding-right: 34px; }
+    .featured-product-image { width: min(100%, 320px); border-radius: 15px; }
     .toolbar { gap: 8px; }
     .sort { max-width: calc(100% - 88px); padding: 9px 10px; font-size: 11px; }
     .view-btn { flex: 0 0 34px; width: 34px; height: 34px; }
@@ -279,4 +320,8 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .banner .shop { animation: none; }
     .marquee-track { animation: none; }
     .card, .feature { transition-duration: .01ms; }
+    .card.scroll-reveal { opacity: 1; transition: none; }
+    .featured-slide.is-active, .featured-slide.is-active.slide-next, .featured-slide.is-active.slide-previous,
+    .featured-product-image::before, .featured-product-image::after,
+    .featured-product-image img, .featured-product-image .banner-featured-cutout { animation: none; }
 }

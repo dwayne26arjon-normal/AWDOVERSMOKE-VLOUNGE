@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v={{ filemtime(public_path('css/checkout.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/account-menu.css') }}?v={{ filemtime(public_path('css/account-menu.css')) }}">
 </head>
-<body>
+<body data-user-id="{{ auth('web')->id() }}">
     <div class="smoke"></div>
     <header class="topbar">
         <a class="logo" href="{{ url('/home') }}">

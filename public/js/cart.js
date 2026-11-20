@@ -6,20 +6,38 @@
     const selectAll = document.getElementById('selectAll');
     const message = document.getElementById('cartMessage');
     const formatter = new Intl.NumberFormat('en-PH');
-    let items = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
-    let removedItems = JSON.parse(localStorage.getItem('oversmoke-removed-cart') || '[]');
+    const userId = document.body.dataset.userId;
+    const cartKey = `oversmoke-cart-user-${userId}`;
+    const removedCartKey = `oversmoke-removed-cart-user-${userId}`;
+    const checkoutItemsKey = `oversmoke-checkout-items-user-${userId}`;
+    const checkoutSourceKey = `oversmoke-checkout-source-user-${userId}`;
+    let items = JSON.parse(localStorage.getItem(cartKey) || '[]');
+    let removedItems = JSON.parse(localStorage.getItem(removedCartKey) || '[]');
     const selected = new Set(items.map((item, index) => index));
 
     function saveCart() {
-        localStorage.setItem('oversmoke-cart', JSON.stringify(items));
+        localStorage.setItem(cartKey, JSON.stringify(items));
     }
 
     function saveRemovedItems() {
-        localStorage.setItem('oversmoke-removed-cart', JSON.stringify(removedItems));
+        localStorage.setItem(removedCartKey, JSON.stringify(removedItems));
     }
 
     function updateBadge() {
         document.getElementById('cartCount').textContent = items.length;
+    }
+
+    function safeProductImage(imageUrl) {
+        if (typeof imageUrl !== 'string' || !imageUrl) return null;
+
+        try {
+            const parsedUrl = new URL(imageUrl, window.location.origin);
+            return parsedUrl.origin === window.location.origin && parsedUrl.pathname.startsWith('/storage/')
+                ? parsedUrl.href
+                : null;
+        } catch {
+            return null;
+        }
     }
 
     function render() {
@@ -47,7 +65,16 @@
             image.setAttribute('aria-hidden', 'true');
             const device = document.createElement('span');
             device.className = 'item-device';
-            image.append(device);
+            const imageUrl = safeProductImage(item.image);
+            if (imageUrl) {
+                const productImage = document.createElement('img');
+                productImage.src = imageUrl;
+                productImage.alt = '';
+                productImage.onerror = () => productImage.replaceWith(device);
+                image.append(productImage);
+            } else {
+                image.append(device);
+            }
 
             const details = document.createElement('div');
             details.className = 'item-details';
@@ -215,20 +242,20 @@
         const selectedItems = items.filter((item, index) => selected.has(index));
         if (!selectedItems.length) return;
 
-        sessionStorage.setItem('oversmoke-checkout-items', JSON.stringify(selectedItems));
-        sessionStorage.setItem('oversmoke-checkout-source', 'cart');
+        sessionStorage.setItem(checkoutItemsKey, JSON.stringify(selectedItems));
+        sessionStorage.setItem(checkoutSourceKey, 'cart');
         window.location.href = '/checkout';
     });
 
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', event => {
-        if (event.key === 'oversmoke-cart') {
+        if (event.key === cartKey) {
             items = JSON.parse(event.newValue || '[]');
             selected.clear();
             items.forEach((item, itemIndex) => selected.add(itemIndex));
             render();
         }
-        if (event.key === 'oversmoke-removed-cart') {
+        if (event.key === removedCartKey) {
             removedItems = JSON.parse(event.newValue || '[]');
             renderRemovedItems();
         }

@@ -23,7 +23,7 @@
         .order-list-note[hidden] { display: none; }
     </style>
 </head>
-<body>
+<body data-user-id="{{ auth('web')->id() }}">
     <div class="smoke"></div>
     <header class="topbar">
         <a class="logo" href="{{ url('/home') }}">
@@ -109,7 +109,8 @@
         @endif
     </main>
     <script>
-        document.getElementById('cartCount').textContent = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]').length;
+        const cartKey = `oversmoke-cart-user-${document.body.dataset.userId}`;
+        document.getElementById('cartCount').textContent = JSON.parse(localStorage.getItem(cartKey) || '[]').length;
     </script>
     <script src="{{ asset('js/account-menu.js') }}?v={{ filemtime(public_path('js/account-menu.js')) }}"></script>
 </body>

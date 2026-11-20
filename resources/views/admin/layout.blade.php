@@ -37,6 +37,27 @@
         .topbar-search input { width: 100%; height: 30px; padding: 0 34px 0 11px; border: 1px solid #272331; border-radius: 6px; outline: 0; background: #14111b; color: #eee; font: inherit; font-size: 10px; }
         .topbar-search input:focus { border-color: #7045eb; box-shadow: 0 0 0 2px rgba(112, 69, 235, .15); }
         .search-icon { position: absolute; top: 7px; right: 10px; color: #8d8798; font-size: 12px; pointer-events: none; }
+        .admin-notifications { position: relative; margin-left: auto; }
+        .notification-button { position: relative; display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #302a3b; border-radius: 6px; background: #14111b; color: #c8c2d2; cursor: pointer; }
+        .notification-button:hover, .notification-button:focus-visible, .notification-button[aria-expanded="true"] { border-color: #7045eb; color: #fff; outline: 0; }
+        .notification-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+        .notification-count { position: absolute; top: -6px; right: -6px; display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border: 1px solid #0c0a12; border-radius: 999px; background: #e74d70; color: #fff; font-size: 9px; font-weight: 700; }
+        .notification-count[hidden] { display: none; }
+        .notification-menu { position: absolute; top: calc(100% + 10px); right: 0; z-index: 9; width: min(330px, calc(100vw - 30px)); overflow: hidden; border: 1px solid #322c3e; border-radius: 8px; background: #17141f; box-shadow: 0 14px 36px rgba(0,0,0,.48); }
+        .notification-menu[hidden] { display: none; }
+        .notification-heading { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; border-bottom: 1px solid #302a3b; color: #e8e4ef; font-size: 11px; font-weight: 600; }
+        .notification-clear { border: 0; background: none; color: #ab91ff; font: inherit; font-size: 9px; cursor: pointer; }
+        .notification-list { max-height: 310px; overflow-y: auto; }
+        .notification-item { display: block; padding: 11px 12px; border-bottom: 1px solid rgba(48,42,59,.65); color: #c9c3d1; font-size: 10px; text-decoration: none; }
+        .notification-item:last-child { border-bottom: 0; }
+        .notification-item:hover, .notification-item:focus-visible { outline: 0; background: rgba(116,79,205,.14); }
+        .notification-item strong { display: block; margin-bottom: 4px; color: #f1ecfa; font-size: 10px; }
+        .notification-empty { padding: 22px 12px; color: #888291; font-size: 10px; text-align: center; }
+        .order-toast { position: fixed; top: 66px; right: 24px; z-index: 20; width: min(340px, calc(100vw - 32px)); padding: 13px 15px; border: 1px solid rgba(132,99,235,.55); border-radius: 8px; background: #1b1726; box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 24px rgba(112,69,235,.2); color: #eee9f6; font-size: 11px; animation: notification-in .25s ease-out both; }
+        .order-toast[hidden] { display: none; }
+        .order-toast strong { display: block; margin-bottom: 4px; font-size: 12px; }
+        .order-toast a { color: #c7b5ff; text-decoration: none; }
+        @keyframes notification-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .admin-profile { position: relative; display: flex; align-items: center; }
         .admin-profile-button { display: flex; align-items: center; gap: 9px; padding: 4px 0 4px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: right; cursor: pointer; }
         .admin-profile-button:hover .avatar, .admin-profile-button:focus-visible .avatar, .admin-profile-button[aria-expanded="true"] .avatar { border-color: #7658bc; background: #2a2140; }
@@ -138,6 +159,23 @@
                     <input id="admin-search" type="search" name="q" value="{{ request('q') }}" placeholder="Search {{ request()->routeIs('admin.orders.*') ? 'orders...' : 'products...' }}">
                     <span class="search-icon" aria-hidden="true">⌕</span>
                 </form>
+                <div class="admin-notifications"
+                     id="adminNotifications"
+                     data-endpoint="{{ route('admin.orders.notifications') }}"
+                     data-admin-id="{{ auth('admin')->id() }}"
+                     data-order-url-template="{{ route('admin.orders.show', ['order' => '__ORDER_ID__']) }}">
+                    <button class="notification-button" id="notificationButton" type="button" aria-label="Order notifications" aria-expanded="false" aria-controls="notificationMenu">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+                        <span class="notification-count" id="notificationCount" hidden></span>
+                    </button>
+                    <div class="notification-menu" id="notificationMenu" hidden>
+                        <div class="notification-heading">
+                            <span>New purchases</span>
+                            <button class="notification-clear" id="clearNotifications" type="button">Clear all</button>
+                        </div>
+                        <div class="notification-list" id="notificationList" aria-live="polite"></div>
+                    </div>
+                </div>
                 <div class="admin-profile">
                     <button class="admin-profile-button" id="adminProfileButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="adminAccountMenu">
                         <span class="admin-profile-copy">
@@ -153,6 +191,7 @@
                         </form>
                     </div>
                 </div>
+                <div class="order-toast" id="orderToast" role="status" aria-live="polite" hidden></div>
             </header>
 
             <main class="page-content">
@@ -186,6 +225,7 @@
             });
         })();
     </script>
+    <script src="{{ asset('js/admin-notifications.js') }}?v={{ filemtime(public_path('js/admin-notifications.js')) }}"></script>
     @stack('scripts')
 </body>
 </html>

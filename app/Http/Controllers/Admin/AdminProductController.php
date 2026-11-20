@@ -8,7 +8,9 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -257,54 +259,136 @@ class AdminProductController extends Controller
 
     public function create(): View
     {
-        return view('admin.products.form', ['product' => new Product]);
+        return view('admin.products.form', [
+            'product' => new Product,
+            'variantLabel' => null,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validatedProduct($request);
         $image = $data['image'] ?? null;
-        unset($data['image']);
+        $featuredImage = $data['featured_image'] ?? null;
+        $variants = array_map(
+            fn (array $variant) => ['name' => trim($variant['name']), 'stock' => (int) $variant['stock']],
+            $data['variants'] ?? []
+        );
+        unset($data['image'], $data['featured_image'], $data['variants']);
         $data['is_active'] = $request->boolean('is_active');
+        $data['is_featured'] = $request->boolean('is_featured');
+        $variantLabel = $this->optionLabel($data['category']);
+        $variants = $variantLabel ? $variants : [];
 
         if ($image) {
             $data['image_path'] = $image->store('products', 'public');
         }
+        if ($featuredImage) {
+            $data['featured_image_path'] = $featuredImage->store('products/featured', 'public');
+        }
+        if ($variantLabel && $variants) {
+            $data['stock'] = array_sum(array_column($variants, 'stock'));
+        }
 
-        Product::create($data);
+        DB::transaction(function () use ($data, $variants, $variantLabel) {
+            $product = Product::create($data);
+            if ($variantLabel) {
+                $product->variants()->createMany($variants);
+            }
+        });
 
         return redirect()->route('admin.products.index')->with('status', 'Product added successfully.');
     }
 
     public function edit(Product $product): View
     {
-        return view('admin.products.form', compact('product'));
+        $product->load('variants');
+
+        return view('admin.products.form', [
+            'product' => $product,
+            'variantLabel' => $this->optionLabel($product->category),
+        ]);
     }
 
     public function update(Request $request, Product $product): RedirectResponse
     {
         $data = $this->validatedProduct($request);
         $image = $data['image'] ?? null;
-        unset($data['image']);
+        $featuredImage = $data['featured_image'] ?? null;
+        $variants = array_map(
+            fn (array $variant) => ['name' => trim($variant['name']), 'stock' => (int) $variant['stock']],
+            $data['variants'] ?? []
+        );
+        unset($data['image'], $data['featured_image'], $data['variants']);
         $data['is_active'] = $request->boolean('is_active');
+        $data['is_featured'] = $request->boolean('is_featured');
+        $variantLabel = $this->optionLabel($data['category']);
+        $variants = $variantLabel ? $variants : [];
+        $variantNames = array_column($variants, 'name');
+        $usedVariantNames = OrderItem::query()
+            ->where('product_id', $product->id)
+            ->whereNotNull('color')
+            ->pluck('color')
+            ->unique()
+            ->all();
+        $removedUsedVariant = $product->variants()
+            ->whereIn('name', $usedVariantNames)
+            ->get()
+            ->contains(fn ($variant) => ! in_array($variant->name, $variantNames, true));
+
+        if ($removedUsedVariant) {
+            throw ValidationException::withMessages([
+                'variants' => ['A flavor or color used by an existing order cannot be removed. Set its stock to 0 instead.'],
+            ]);
+        }
+        $oldImage = null;
+        $oldFeaturedImage = null;
 
         if ($image) {
             $oldImage = $product->image_path;
             $data['image_path'] = $image->store('products', 'public');
-            if ($oldImage) {
-                Storage::disk('public')->delete($oldImage);
-            }
+        }
+        if ($featuredImage) {
+            $oldFeaturedImage = $product->featured_image_path;
+            $data['featured_image_path'] = $featuredImage->store('products/featured', 'public');
+        }
+        if ($variantLabel && $variants) {
+            $data['stock'] = array_sum(array_column($variants, 'stock'));
         }
 
-        $product->update($data);
+        DB::transaction(function () use ($product, $data, $variants, $variantLabel) {
+            $product->update($data);
+            $variantNames = array_column($variants, 'name');
+            if ($variantNames) {
+                $product->variants()->whereNotIn('name', $variantNames)->delete();
+            } else {
+                $product->variants()->delete();
+            }
+            if ($variantLabel) {
+                foreach ($variants as $variant) {
+                    $product->variants()->updateOrCreate(
+                        ['name' => $variant['name']],
+                        ['stock' => $variant['stock']]
+                    );
+                }
+            }
+        });
+
+        foreach ([$oldImage, $oldFeaturedImage] as $oldPath) {
+            if ($oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
 
         return redirect()->route('admin.products.index')->with('status', 'Product updated successfully.');
     }
 
     public function destroy(Product $product): RedirectResponse
     {
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
+        foreach ([$product->image_path, $product->featured_image_path] as $imagePath) {
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
         }
 
         $product->delete();
@@ -314,14 +398,41 @@ class AdminProductController extends Controller
 
     private function validatedProduct(Request $request): array
     {
-        return $request->validate([
+        $variantLabel = $this->optionLabel((string) $request->input('category', ''));
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'brand' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'stock' => ['required', 'integer', 'min:0', 'max:4294967295'],
+            'is_featured' => ['sometimes', 'boolean'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'featured_image' => ['nullable', 'image', 'max:5120'],
+            'variants' => ['nullable', 'array', 'min:1', 'max:30'],
+            'variants.*.name' => ['required_with:variants', 'string', 'max:50'],
+            'variants.*.stock' => ['required_with:variants', 'integer', 'min:0', 'max:4294967295'],
         ]);
+
+        if (! empty($data['variants'])) {
+            $names = array_map(fn (array $variant) => mb_strtolower(trim($variant['name'])), $data['variants']);
+            if (count($names) !== count(array_unique($names))) {
+                throw ValidationException::withMessages([
+                    'variants' => ['Each flavor or color must have a unique name.'],
+                ]);
+            }
+            if (array_sum(array_column($data['variants'], 'stock')) > 4294967295) {
+                throw ValidationException::withMessages([
+                    'variants' => ['The total variant stock cannot exceed 4,294,967,295.'],
+                ]);
+            }
+        }
+
+        return $data;
+    }
+
+    private function optionLabel(string $category): ?string
+    {
+        return (new Product(['category' => $category]))->optionLabel();
     }
 }

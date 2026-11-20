@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -14,7 +15,9 @@ class Product extends Model
         'price',
         'stock',
         'image_path',
+        'featured_image_path',
         'is_active',
+        'is_featured',
     ];
 
     protected function casts(): array
@@ -23,6 +26,27 @@ class Product extends Model
             'price' => 'decimal:2',
             'stock' => 'integer',
             'is_active' => 'boolean',
+            'is_featured' => 'boolean',
         ];
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
+
+    public function optionLabel(): ?string
+    {
+        $category = mb_strtolower(trim($this->category));
+
+        if (str_contains($category, 'juice') || str_contains($category, 'liquid')) {
+            return 'Flavor';
+        }
+
+        if (str_contains($category, 'pod')) {
+            return 'Color';
+        }
+
+        return null;
     }
 }

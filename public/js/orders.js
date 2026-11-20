@@ -3,10 +3,13 @@
     const emptyState = document.getElementById('emptyOrders');
     const formatter = new Intl.NumberFormat('en-PH');
     const visibleItemLimit = 3;
+    const userId = document.body.dataset.userId;
+    const ordersKey = `oversmoke-orders-user-${userId}`;
+    const cartKey = `oversmoke-cart-user-${userId}`;
 
     function render() {
-        const orders = JSON.parse(localStorage.getItem('oversmoke-orders') || '[]');
-        const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
+        const orders = JSON.parse(localStorage.getItem(ordersKey) || '[]');
+        const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
         document.getElementById('cartCount').textContent = cart.length;
         ordersList.replaceChildren();
         emptyState.hidden = orders.length > 0;
@@ -120,6 +123,6 @@
     render();
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', event => {
-        if (event.key === 'oversmoke-orders' || event.key === 'oversmoke-cart') render();
+        if (event.key === ordersKey || event.key === cartKey) render();
     });
 })();

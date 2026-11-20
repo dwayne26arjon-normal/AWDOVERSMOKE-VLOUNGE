@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,15 +52,52 @@ class OrderController extends Controller
                 ]);
             }
 
-            $quantities = collect($data['items'])->groupBy('id')->map(
-                fn ($items) => $items->sum('quantity')
-            );
+            $variantsByProduct = $products->mapWithKeys(function (Product $product) {
+                return [$product->id => $product->variants()->lockForUpdate()->get()];
+            });
+            $selectedVariants = [];
+            $variantQuantities = [];
+            $quantities = [];
+
+            foreach ($data['items'] as $index => $item) {
+                $product = $products->get($item['id']);
+                $quantities[$product->id] = ($quantities[$product->id] ?? 0) + $item['quantity'];
+                $productVariants = $variantsByProduct->get($product->id);
+
+                if ($productVariants->isNotEmpty()) {
+                    $selectedName = trim((string) ($item['color'] ?? ''));
+                    $variant = $productVariants->first(
+                        fn (ProductVariant $candidate) => mb_strtolower($candidate->name) === mb_strtolower($selectedName)
+                    );
+
+                    if (! $variant) {
+                        throw ValidationException::withMessages([
+                            'items' => ["Choose an available option for {$product->name}."],
+                        ]);
+                    }
+
+                    $selectedVariants[$index] = $variant;
+                    $variantQuantities[$variant->id] = ($variantQuantities[$variant->id] ?? 0) + $item['quantity'];
+                } elseif ($product->stock < $quantities[$product->id]) {
+                    throw ValidationException::withMessages([
+                        'items' => ["There is not enough stock for {$product->name}. Please update the quantity and try again."],
+                    ]);
+                }
+            }
 
             foreach ($quantities as $productId => $quantity) {
                 $product = $products->get($productId);
                 if ($product->stock < $quantity) {
                     throw ValidationException::withMessages([
                         'items' => ["There is not enough stock for {$product->name}. Please update the quantity and try again."],
+                    ]);
+                }
+            }
+            foreach ($variantQuantities as $variantId => $quantity) {
+                $variant = ProductVariant::query()->find($variantId);
+                if (! $variant || $variant->stock < $quantity) {
+                    throw ValidationException::withMessages([
+                        'items' => ['There is not enough stock for one of the selected flavors or colors.'],
                     ]);
                 }
             }
@@ -81,7 +119,7 @@ class OrderController extends Controller
                 'total' => $subtotal,
             ]);
 
-            foreach ($data['items'] as $item) {
+            foreach ($data['items'] as $index => $item) {
                 $product = $products->get($item['id']);
                 $order->items()->create([
                     'product_id' => $product->id,
@@ -89,12 +127,15 @@ class OrderController extends Controller
                     'brand' => $product->brand,
                     'category' => $product->category,
                     'image_path' => $product->image_path,
-                    'color' => $item['color'] ?? null,
+                    'color' => $selectedVariants[$index]->name ?? ($item['color'] ?? null),
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,
                 ]);
             }
 
+            foreach ($variantQuantities as $variantId => $quantity) {
+                ProductVariant::query()->whereKey($variantId)->decrement('stock', $quantity);
+            }
             foreach ($quantities as $productId => $quantity) {
                 $products->get($productId)->decrement('stock', $quantity);
             }

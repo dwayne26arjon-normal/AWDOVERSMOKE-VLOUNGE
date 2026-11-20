@@ -127,6 +127,20 @@ class AdminProductManagementTest extends TestCase
             ->assertSee('Hidden');
     }
 
+    public function test_product_form_offers_standard_and_custom_categories(): void
+    {
+        $admin = $this->createAdmin();
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.products.create'))
+            ->assertOk()
+            ->assertSee('Juices')
+            ->assertSee('Pod System')
+            ->assertSee('Disposable Vapes')
+            ->assertSee('Custom category')
+            ->assertSee('Enter custom category');
+    }
+
     public function test_product_created_by_admin_appears_in_customer_store(): void
     {
         $admin = $this->createAdmin();
@@ -141,14 +155,26 @@ class AdminProductManagementTest extends TestCase
                 'price' => '450',
                 'stock' => 20,
                 'is_active' => '1',
+                'is_featured' => '1',
             ])
             ->assertRedirect(route('admin.products.index'));
+
+        $product = Product::where('name', 'Admin Added Berry')->firstOrFail();
+        $this->assertTrue($product->is_featured);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('Featured product')
+            ->assertSee('name="is_featured"', false)
+            ->assertSee('checked', false);
 
         $this->actingAs($customer, 'web')
             ->get('/home')
             ->assertOk()
             ->assertSee('Admin Added Berry')
-            ->assertSee('Vape Co');
+            ->assertSee('Vape Co')
+            ->assertSee('class="featured-label">Featured', false);
     }
 
     public function test_admin_can_create_update_and_delete_products(): void
@@ -165,6 +191,7 @@ class AdminProductManagementTest extends TestCase
             'price' => '1499.50',
             'stock' => 25,
             'is_active' => '1',
+            'is_featured' => '1',
             'image' => UploadedFile::fake()->createWithContent(
                 'cloud-pod.png',
                 base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=')
@@ -175,6 +202,7 @@ class AdminProductManagementTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'is_active' => true,
+            'is_featured' => true,
             'stock' => 25,
         ]);
         Storage::disk('public')->assertExists($product->image_path);
@@ -192,6 +220,7 @@ class AdminProductManagementTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'name' => 'Cloud Pod Plus',
+            'is_featured' => false,
             'stock' => 12,
         ]);
 
@@ -200,6 +229,85 @@ class AdminProductManagementTest extends TestCase
 
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
         Storage::disk('public')->assertMissing($product->image_path);
+    }
+
+    public function test_admin_can_upload_promotional_artwork_and_configure_color_stock(): void
+    {
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.products.store'), [
+                'name' => 'Color Pod',
+                'category' => 'Pod Systems',
+                'price' => 1200,
+                'stock' => 0,
+                'is_active' => '1',
+                'is_featured' => '1',
+                'image' => UploadedFile::fake()->createWithContent(
+                    'product.png',
+                    base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=')
+                ),
+                'featured_image' => UploadedFile::fake()->createWithContent(
+                    'promo.png',
+                    base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=')
+                ),
+                'variants' => [
+                    ['name' => 'Midnight Black', 'stock' => 4],
+                    ['name' => 'Ice Blue', 'stock' => 3],
+                ],
+            ])
+            ->assertRedirect(route('admin.products.index'));
+
+        $product = Product::where('name', 'Color Pod')->with('variants')->firstOrFail();
+        $this->assertSame(7, $product->stock);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'name' => 'Midnight Black',
+            'stock' => 4,
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'name' => 'Ice Blue',
+            'stock' => 3,
+        ]);
+        Storage::disk('public')->assertExists($product->image_path);
+        Storage::disk('public')->assertExists($product->featured_image_path);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee('Color')
+            ->assertSee('Midnight Black')
+            ->assertSee('Ice Blue');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee(asset('storage/' . $product->featured_image_path), false);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.products.store'), [
+                'name' => 'Berry Juice',
+                'category' => 'Juices',
+                'price' => 450,
+                'stock' => 0,
+                'is_active' => '1',
+                'variants' => [
+                    ['name' => 'Blueberry Ice', 'stock' => 6],
+                    ['name' => 'Cool Mint', 'stock' => 2],
+                ],
+            ])
+            ->assertRedirect(route('admin.products.index'));
+
+        $juice = Product::where('name', 'Berry Juice')->with('variants')->firstOrFail();
+        $this->assertSame(8, $juice->stock);
+        $this->actingAs($admin, 'admin')
+            ->get(route('products.show', $juice))
+            ->assertOk()
+            ->assertSee('Flavor')
+            ->assertSee('Blueberry Ice')
+            ->assertSee('Cool Mint');
     }
 
     public function test_customer_cannot_manage_admin_products(): void

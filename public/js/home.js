@@ -5,6 +5,52 @@
     const cards = [...grid.querySelectorAll('.card')];
     const filterDrawer = document.querySelector('.filter-drawer');
     const compactLayout = window.matchMedia('(max-width: 900px)');
+    const cartKey = `oversmoke-cart-user-${document.body.dataset.userId}`;
+
+    document.querySelectorAll('[data-featured-carousel]').forEach(carousel => {
+        const slides = [...carousel.querySelectorAll('[data-featured-slide]')];
+        const dots = [...carousel.querySelectorAll('[data-featured-dot]')];
+        if (slides.length < 2) return;
+
+        let activeIndex = 0;
+        const showSlide = (index, direction = index > activeIndex ? 'next' : 'previous') => {
+            const previousIndex = activeIndex;
+            activeIndex = (index + slides.length) % slides.length;
+            if (activeIndex === previousIndex) return;
+
+            slides.forEach((slide, slideIndex) => {
+                slide.hidden = slideIndex !== activeIndex;
+                slide.classList.remove('is-active', 'slide-next', 'slide-previous');
+                if (slideIndex === activeIndex) {
+                    slide.classList.add('is-active', `slide-${direction}`);
+                }
+            });
+            dots.forEach((dot, dotIndex) => {
+                if (dotIndex === activeIndex) {
+                    dot.setAttribute('aria-current', 'true');
+                    dot.tabIndex = 0;
+                } else {
+                    dot.removeAttribute('aria-current');
+                    dot.tabIndex = -1;
+                }
+            });
+        };
+
+        carousel.querySelector('[data-featured-previous]').addEventListener('click', () => showSlide(activeIndex - 1, 'previous'));
+        carousel.querySelector('[data-featured-next]').addEventListener('click', () => showSlide(activeIndex + 1, 'next'));
+        dots.forEach(dot => {
+            dot.addEventListener('click', () => showSlide(Number(dot.dataset.featuredDot)));
+        });
+        carousel.addEventListener('keydown', event => {
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                showSlide(activeIndex - 1, 'previous');
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                showSlide(activeIndex + 1, 'next');
+            }
+        });
+    });
 
     function syncFilterDrawer() {
         filterDrawer.open = !compactLayout.matches;
@@ -14,26 +60,31 @@
     compactLayout.addEventListener('change', syncFilterDrawer);
 
     function syncCartCount() {
-        const items = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
+        const items = JSON.parse(localStorage.getItem(cartKey) || '[]');
         $('cartCount').textContent = items.length;
     }
 
     syncCartCount();
     window.addEventListener('pageshow', syncCartCount);
     window.addEventListener('storage', event => {
-        if (event.key === 'oversmoke-cart') syncCartCount();
+        if (event.key === cartKey) syncCartCount();
     });
 
-    /* ---------- Pasok ng cards ---------- */
-    function replayCards() {
-        let n = 0;
-        cards.forEach(c => {
-            if (c.style.display === 'none') return;
-            c.classList.remove('enter');
-            void c.offsetWidth;
-            c.style.setProperty('--d', (n++ * 70) + 'ms');
-            c.classList.add('enter');
+    if ('IntersectionObserver' in window) {
+        const cardObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-visible');
+                cardObserver.unobserve(entry.target);
+            });
+        }, { threshold: 0.12 });
+
+        cards.forEach(card => {
+            card.classList.add('scroll-reveal');
+            cardObserver.observe(card);
         });
+    } else {
+        cards.forEach(card => card.classList.add('is-visible'));
     }
 
     /* ---------- Filters / search / sort ---------- */
@@ -66,7 +117,6 @@
         cards.forEach(c => c.style.display = 'none');
         visible.forEach(c => { c.style.display = ''; grid.appendChild(c); });
         $('empty').style.display = visible.length ? 'none' : 'block';
-        replayCards();
     }
 
     document.querySelectorAll('.f-cat, .f-brand, #minPrice, #maxPrice, #sort').forEach(el => el.addEventListener('input', applyFilters));
@@ -105,13 +155,16 @@
     });
 
     /* ---------- Grid / list ---------- */
-    $('gridBtn').addEventListener('click', () => { grid.classList.remove('list'); $('gridBtn').classList.add('active'); $('listBtn').classList.remove('active'); replayCards(); });
-    $('listBtn').addEventListener('click', () => { grid.classList.add('list'); $('listBtn').classList.add('active'); $('gridBtn').classList.remove('active'); replayCards(); });
+    $('gridBtn').addEventListener('click', () => { grid.classList.remove('list'); $('gridBtn').classList.add('active'); $('listBtn').classList.remove('active'); });
+    $('listBtn').addEventListener('click', () => { grid.classList.add('list'); $('listBtn').classList.add('active'); $('gridBtn').classList.remove('active'); });
 
-    /* ---------- Shop Now: balik sa taas ng products ---------- */
+    /* ---------- Shop Now: scroll to the product catalog ---------- */
     document.querySelector('.banner .shop').addEventListener('click', e => {
         e.preventDefault();
-        content.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({
+            top: content.getBoundingClientRect().top + window.scrollY,
+            behavior: 'smooth'
+        });
     });
 
     /* ---------- 3D tilt ---------- */
@@ -187,5 +240,4 @@
     });
 
     /* ---------- Start ---------- */
-    replayCards();
 })();

@@ -4,6 +4,7 @@ namespace Tests\Feature\User;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -77,6 +78,47 @@ class OrdersTest extends TestCase
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertSame(1, $product->fresh()->stock);
+    }
+
+    public function test_customer_order_reserves_the_selected_variant_stock(): void
+    {
+        $customer = User::factory()->create();
+        $product = Product::create([
+            'name' => 'Berry Juice',
+            'category' => 'Juices',
+            'price' => 450,
+            'stock' => 7,
+            'is_active' => true,
+        ]);
+        $berry = $product->variants()->create(['name' => 'Berry Ice', 'stock' => 5]);
+        $mint = $product->variants()->create(['name' => 'Cool Mint', 'stock' => 2]);
+
+        $payload = [
+            'items' => [['id' => $product->id, 'quantity' => 3, 'color' => 'Berry Ice']],
+            'customer' => [
+                'name' => 'Delivery Customer',
+                'phone' => '09123456789',
+                'address' => '123 Example Street',
+            ],
+            'payment_method' => 'Cash on delivery',
+        ];
+
+        $this->actingAs($customer)
+            ->postJson(route('orders.store'), $payload)
+            ->assertCreated();
+
+        $this->assertSame(2, $berry->fresh()->stock);
+        $this->assertSame(2, $mint->fresh()->stock);
+        $this->assertSame(4, $product->fresh()->stock);
+        $this->assertSame('Berry Ice', Order::firstOrFail()->items->first()->color);
+
+        $payload['items'][0]['quantity'] = 3;
+        $this->actingAs($customer)
+            ->postJson(route('orders.store'), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('items');
+
+        $this->assertSame(2, $berry->fresh()->stock);
     }
 
     public function test_customer_orders_page_shows_only_that_customers_database_orders(): void

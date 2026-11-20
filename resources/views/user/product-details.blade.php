@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{{ asset('css/product-details.css') }}?v={{ filemtime(public_path('css/product-details.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/account-menu.css') }}?v={{ filemtime(public_path('css/account-menu.css')) }}">
 </head>
-<body>
+<body data-user-id="{{ auth('web')->id() }}">
     <div class="smoke"></div>
     <header class="topbar">
         <a class="logo" href="{{ url('/home') }}">
@@ -40,6 +40,9 @@
                  data-name="{{ $product->name }}"
                  data-brand="{{ $product->brand }}"
                  data-price="{{ $product->price }}"
+                 data-stock="{{ $product->stock }}"
+                 data-option-label="{{ $product->optionLabel() ?? '' }}"
+                 data-options="{{ $product->variants->map(fn ($variant) => ['name' => $variant->name, 'stock' => $variant->stock])->values()->toJson() }}"
                  data-authenticated="{{ auth('web')->check() ? 'true' : 'false' }}"
                  data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
             <div class="product-visual" id="productImagePreview">
@@ -61,16 +64,26 @@
                 <h1>{{ $product->name }}</h1>
                 <p class="brand">{{ $product->brand }}</p>
                 <p class="price">₱ <span id="unitPrice">{{ number_format((float) $product->price) }}</span></p>
-                <p class="description">{{ $product->description ?: 'A quality ' . strtolower($product->category) . ' product' . ($product->brand ? ' from ' . $product->brand : '') . '. Choose a color and quantity before adding it to your cart.' }}</p>
+                <p class="description">{{ $product->description ?: 'A quality ' . strtolower($product->category) . ' product' . ($product->brand ? ' from ' . $product->brand : '') . '. Choose an option and quantity before adding it to your cart.' }}</p>
 
-                <fieldset class="color-picker">
-                    <legend>Color <span id="selectedColor">Black</span></legend>
-                    <div class="color-options">
-                        @foreach (['Black', 'Blue', 'Yellow', 'Red', 'Gray', 'White', 'Green', 'Violet'] as $color)
-                            <button type="button" class="color-option{{ $loop->first ? ' selected' : '' }}" data-color="{{ $color }}" aria-pressed="{{ $loop->first ? 'true' : 'false' }}">{{ $color }}</button>
-                        @endforeach
-                    </div>
-                </fieldset>
+                @if ($product->variants->isNotEmpty())
+                    @php($availableVariant = $product->variants->first(fn ($variant) => $variant->stock > 0))
+                    <fieldset class="color-picker">
+                        <legend>{{ $product->optionLabel() }} <span id="selectedOption">{{ $availableVariant?->name ?? $product->variants->first()->name }}</span></legend>
+                        @if ($product->variants->count() > 8)
+                            <label class="option-search-label" for="optionSearch">Search {{ strtolower($product->optionLabel()) }}s</label>
+                            <input class="option-search" id="optionSearch" type="search" autocomplete="off" placeholder="Type to filter options">
+                        @endif
+                        <div class="color-options">
+                            @foreach ($product->variants as $variant)
+                                <button type="button" class="color-option{{ $availableVariant?->id === $variant->id ? ' selected' : '' }}" data-option="{{ $variant->name }}" data-stock="{{ $variant->stock }}" aria-pressed="{{ $availableVariant?->id === $variant->id ? 'true' : 'false' }}" @disabled($variant->stock <= 0)>{{ $variant->name }}{{ $variant->stock <= 0 ? ' (Out of stock)' : '' }}</button>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                @else
+                    <fieldset class="color-picker" hidden></fieldset>
+                    <span id="selectedOption" hidden></span>
+                @endif
 
                 <div class="purchase-row">
                     <div class="quantity-control">

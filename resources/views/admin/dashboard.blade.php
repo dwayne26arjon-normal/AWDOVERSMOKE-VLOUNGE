@@ -8,7 +8,17 @@
             <h1>Dashboard</h1>
             <p>Your store overview at a glance.</p>
         </div>
-        <a class="primary-button" href="{{ route('admin.products.create') }}">+ Add product</a>
+        <div class="dashboard-heading-actions">
+            <details class="sales-export-dropdown">
+                <summary class="secondary-button">Download CSV <span aria-hidden="true">▾</span></summary>
+                <div class="sales-export-menu">
+                    <a href="{{ route('admin.orders.sales.export', ['range' => 'day']) }}">Today</a>
+                    <a href="{{ route('admin.orders.sales.export', ['range' => 'month']) }}">This month</a>
+                    <a href="{{ route('admin.orders.sales.export', ['range' => 'year']) }}">This year</a>
+                </div>
+            </details>
+            <a class="primary-button" href="{{ route('admin.products.create') }}">+ Add product</a>
+        </div>
     </div>
 
     <section class="overview-grid" aria-label="Store overview">
@@ -251,6 +261,23 @@
         </article>
     </section>
 @endsection
+
+@push('styles')
+    <style>
+        .dashboard-heading-actions { display: flex; align-items: center; gap: 10px; }
+        .sales-export-dropdown { position: relative; }
+        .sales-export-dropdown > summary { min-height: 32px; cursor: pointer; list-style: none; }
+        .sales-export-dropdown > summary::-webkit-details-marker { display: none; }
+        .sales-export-dropdown > summary span { margin-left: 3px; color: #a99dbd; }
+        .sales-export-menu { position: absolute; z-index: 10; top: calc(100% + 6px); right: 0; min-width: 150px; padding: 5px; border: 1px solid #302a3b; border-radius: 6px; background: #17141f; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+        .sales-export-menu a { display: block; padding: 8px 10px; border-radius: 4px; color: #ded9e7; font-size: 10px; text-decoration: none; }
+        .sales-export-menu a:hover, .sales-export-menu a:focus-visible { outline: 0; background: #262033; color: #fff; }
+        @media (max-width: 620px) {
+            .page-heading { flex-wrap: wrap; }
+            .dashboard-heading-actions { width: 100%; flex-wrap: wrap; }
+        }
+    </style>
+@endpush
 
 @push('styles')
     <style>

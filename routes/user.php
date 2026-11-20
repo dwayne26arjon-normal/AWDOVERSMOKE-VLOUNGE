@@ -127,7 +127,8 @@ Route::get('/welcome', function () {
 
 Route::get('/home', function () {
     return view('user.home', [
-        'products' => Product::query()->where('is_active', true)->latest()->get(),
+        'products' => Product::query()->where('is_active', true)->orderByDesc('is_featured')->latest()->get(),
+        'featuredProducts' => Product::query()->where('is_active', true)->where('is_featured', true)->latest()->limit(2)->get(),
         'categories' => Product::query()->where('is_active', true)->whereNotNull('category')->where('category', '!=', '')->distinct()->orderBy('category')->pluck('category'),
         'brands' => Product::query()->where('is_active', true)->whereNotNull('brand')->where('brand', '!=', '')->distinct()->orderBy('brand')->pluck('brand'),
         'maximumPrice' => max(5000, (float) Product::query()->where('is_active', true)->max('price')),
@@ -135,7 +136,7 @@ Route::get('/home', function () {
 })->name('home');
 
 Route::get('/products/{id}', function (int $id) {
-    $product = Product::query()->where('is_active', true)->findOrFail($id);
+    $product = Product::query()->with('variants')->where('is_active', true)->findOrFail($id);
     return view('user.product-details', compact('product'));
 })->whereNumber('id')->name('products.show');
 

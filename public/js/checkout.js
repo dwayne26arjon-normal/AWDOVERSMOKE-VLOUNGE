@@ -7,19 +7,24 @@
     const addressPreview = document.getElementById('addressPreview');
     const message = document.getElementById('checkoutMessage');
     const successSplash = document.getElementById('successSplash');
-    let items = JSON.parse(sessionStorage.getItem('oversmoke-checkout-items') || '[]');
-    let checkoutSource = sessionStorage.getItem('oversmoke-checkout-source') || 'cart';
+    const userId = document.body.dataset.userId;
+    const cartKey = `oversmoke-cart-user-${userId}`;
+    const deliveryDetailsKey = `oversmoke-delivery-details-user-${userId}`;
+    const checkoutItemsKey = `oversmoke-checkout-items-user-${userId}`;
+    const checkoutSourceKey = `oversmoke-checkout-source-user-${userId}`;
+    let items = JSON.parse(sessionStorage.getItem(checkoutItemsKey) || '[]');
+    let checkoutSource = sessionStorage.getItem(checkoutSourceKey) || 'cart';
     let details = {
         name: document.getElementById('customerName').value,
         phone: document.getElementById('phone').value,
         address: document.getElementById('address').value,
         paymentMethod: 'Cash on delivery'
     };
-    const savedCheckoutDetails = JSON.parse(localStorage.getItem('oversmoke-delivery-details') || '{}');
+    const savedCheckoutDetails = JSON.parse(localStorage.getItem(deliveryDetailsKey) || '{}');
     details.paymentMethod = savedCheckoutDetails.paymentMethod || details.paymentMethod;
 
     function updateBadge() {
-        const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
+        const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
         document.getElementById('cartCount').textContent = cart.length;
     }
 
@@ -78,7 +83,7 @@
     }
 
     function saveFormDetails() {
-        localStorage.setItem('oversmoke-delivery-details', JSON.stringify(details));
+        localStorage.setItem(deliveryDetailsKey, JSON.stringify(details));
         updateAddressPreview();
     }
 
@@ -135,7 +140,7 @@
             return;
         }
 
-        const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
+        const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
         confirmButton.disabled = true;
         message.textContent = 'Placing your order…';
 
@@ -187,11 +192,11 @@
                 );
                 if (index >= 0) remaining.splice(index, 1);
             });
-            localStorage.setItem('oversmoke-cart', JSON.stringify(remaining));
+            localStorage.setItem(cartKey, JSON.stringify(remaining));
         }
 
-        sessionStorage.removeItem('oversmoke-checkout-items');
-        sessionStorage.removeItem('oversmoke-checkout-source');
+        sessionStorage.removeItem(checkoutItemsKey);
+        sessionStorage.removeItem(checkoutSourceKey);
         items = [];
         renderItems();
         updateBadge();

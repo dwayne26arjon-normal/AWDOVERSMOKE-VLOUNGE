@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Mail\OrderInvoiceMail;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,10 +16,42 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AdminOrderController extends Controller
 {
+    public function notifications(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'after' => ['sometimes', 'integer', 'min:0'],
+        ]);
+        $latestId = (int) Order::query()->max('id');
+
+        if (! array_key_exists('after', $validated)) {
+            return response()->json(['cursor' => $latestId, 'orders' => []])
+                ->header('Cache-Control', 'no-store');
+        }
+
+        $orders = Order::query()
+            ->where('id', '>', $validated['after'])
+            ->withCount('items')
+            ->orderBy('id')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'cursor' => $orders->last()?->id ?? max($validated['after'], $latestId),
+            'orders' => $orders->map(fn (Order $order) => [
+                'id' => $order->id,
+                'number' => $order->order_number,
+                'buyer' => $order->customer_name,
+                'total' => (float) $order->total,
+                'items' => $order->items_count,
+            ]),
+        ])->header('Cache-Control', 'no-store');
+    }
+
     public function index(Request $request): View
     {
         $orders = Order::query()
@@ -63,6 +97,12 @@ class AdminOrderController extends Controller
                 foreach ($quantities as $productId => $quantity) {
                     Product::query()->whereKey($productId)->increment('stock', $quantity);
                 }
+                foreach ($items->whereNotNull('product_id')->whereNotNull('color') as $item) {
+                    ProductVariant::query()
+                        ->where('product_id', $item->product_id)
+                        ->where('name', $item->color)
+                        ->increment('stock', $item->quantity);
+                }
             } elseif ($lockedOrder->status === 'cancelled' && $data['status'] !== 'cancelled') {
                 $products = Product::query()
                     ->whereIn('id', $quantities->keys())
@@ -77,10 +117,31 @@ class AdminOrderController extends Controller
                             'status' => ['A product in this order does not have enough active stock to reopen it.'],
                         ]);
                     }
+
+                    $productVariants = $product->variants()->lockForUpdate()->get();
+                    if ($productVariants->isNotEmpty()) {
+                        $variantItems = $items->where('product_id', $productId)->whereNotNull('color')->groupBy('color');
+                        foreach ($variantItems as $variantName => $variantOrderItems) {
+                            $variant = $productVariants->firstWhere('name', $variantName);
+                            $variantQuantity = $variantOrderItems->sum('quantity');
+                            if (! $variant || $variant->stock < $variantQuantity) {
+                                throw ValidationException::withMessages([
+                                    'status' => ["The {$variantName} option for {$product->name} does not have enough stock to reopen this order."],
+                                ]);
+                            }
+                        }
+                    }
                 }
 
                 foreach ($quantities as $productId => $quantity) {
                     $products->get($productId)->decrement('stock', $quantity);
+                }
+                foreach ($items->whereNotNull('product_id')->whereNotNull('color')->groupBy(fn ($item) => $item->product_id . '|' . $item->color) as $variantItems) {
+                    $item = $variantItems->first();
+                    ProductVariant::query()
+                        ->where('product_id', $item->product_id)
+                        ->where('name', $item->color)
+                        ->decrement('stock', $variantItems->sum('quantity'));
                 }
             }
 
@@ -88,6 +149,50 @@ class AdminOrderController extends Controller
         });
 
         return redirect()->route('admin.orders.show', $order)->with('status', 'Order status updated.');
+    }
+
+    public function exportSalesCsv(Request $request): StreamedResponse
+    {
+        $range = $request->query('range', 'day');
+
+        abort_unless(in_array($range, ['day', 'month', 'year'], true), 400, 'Invalid sales range.');
+
+        $query = Order::query()
+            ->where('status', '!=', 'cancelled')
+            ->with('items');
+
+        if ($range === 'day') {
+            $query->whereDate('created_at', today());
+        } elseif ($range === 'month') {
+            $query->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year);
+        } else {
+            $query->whereYear('created_at', now()->year);
+        }
+
+        $orders = $query->orderBy('created_at')->get();
+
+        $filename = sprintf('sales_%s_%s.csv', $range, now()->format('Ymd'));
+
+        return response()->streamDownload(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, ['Order Number', 'Customer Name', 'Customer Email', 'Status', 'Total', 'Items', 'Created At']);
+
+            foreach ($orders as $order) {
+                fputcsv($handle, [
+                    $order->order_number,
+                    $order->customer_name,
+                    $order->customer_email,
+                    ucfirst($order->status),
+                    number_format((float) $order->total, 2, '.', ''),
+                    $order->items->count(),
+                    $order->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=utf-8']);
     }
 
     public function printInvoice(Order $order): View

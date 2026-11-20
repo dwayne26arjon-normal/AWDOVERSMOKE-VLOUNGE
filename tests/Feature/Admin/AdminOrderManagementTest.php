@@ -23,7 +23,11 @@ class AdminOrderManagementTest extends TestCase
             ->get(route('admin.orders.index'))
             ->assertOk()
             ->assertSee($order->order_number)
-            ->assertSee('Customer Example');
+            ->assertSee('Customer Example')
+            ->assertSee('Download CSV')
+            ->assertSee(route('admin.orders.sales.export', ['range' => 'day']), false)
+            ->assertSee(route('admin.orders.sales.export', ['range' => 'month']), false)
+            ->assertSee(route('admin.orders.sales.export', ['range' => 'year']), false);
 
         $this->actingAs($admin, 'admin')
             ->get(route('admin.orders.show', $order))
@@ -44,6 +48,35 @@ class AdminOrderManagementTest extends TestCase
             ->assertSee('Cloud Berry');
     }
 
+    public function test_admin_order_notifications_return_only_orders_after_cursor(): void
+    {
+        $admin = $this->createAdmin();
+        $existingOrder = $this->createOrder();
+
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('cursor', $existingOrder->id)
+            ->assertJsonCount(0, 'orders');
+
+        $newOrder = $this->createOrder();
+
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.orders.notifications', ['after' => $existingOrder->id]))
+            ->assertOk()
+            ->assertJsonPath('cursor', $newOrder->id)
+            ->assertJsonPath('orders.0.number', $newOrder->order_number)
+            ->assertJsonPath('orders.0.buyer', $newOrder->customer_name)
+            ->assertJsonPath('orders.0.items', 1);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.orders.index'))
+            ->assertOk()
+            ->assertSee('id="notificationButton"', false)
+            ->assertSee('New purchases')
+            ->assertSee('admin-notifications.js');
+    }
+
     public function test_admin_can_email_invoice_to_customer(): void
     {
         Mail::fake();
@@ -59,6 +92,18 @@ class AdminOrderManagementTest extends TestCase
             return $mail->hasTo($order->customer_email)
                 && $mail->order->is($order);
         });
+    }
+
+    public function test_admin_can_download_sales_csv_for_today(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder();
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.orders.sales.export', ['range' => 'day']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertHeader('Content-Disposition');
     }
 
     public function test_cancelling_order_restores_stock_and_reopening_reserves_it_again(): void
@@ -85,6 +130,33 @@ class AdminOrderManagementTest extends TestCase
         $this->assertSame(8, $product->fresh()->stock);
     }
 
+    public function test_cancelling_variant_order_restores_and_reopen_reserves_variant_stock(): void
+    {
+        $admin = $this->createAdmin();
+        $product = Product::create([
+            'name' => 'Berry Juice',
+            'category' => 'E-liquids',
+            'price' => 450,
+            'stock' => 8,
+            'is_active' => true,
+        ]);
+        $variant = $product->variants()->create(['name' => 'Strawberry Ice', 'stock' => 8]);
+        $order = $this->createOrder($product);
+        $order->items()->update(['color' => 'Strawberry Ice']);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.orders.status', $order), ['status' => 'cancelled'])
+            ->assertRedirect(route('admin.orders.show', $order));
+        $this->assertSame(10, $product->fresh()->stock);
+        $this->assertSame(10, $variant->fresh()->stock);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.orders.status', $order), ['status' => 'processing'])
+            ->assertRedirect(route('admin.orders.show', $order));
+        $this->assertSame(8, $product->fresh()->stock);
+        $this->assertSame(8, $variant->fresh()->stock);
+    }
+
     private function createAdmin(): User
     {
         $admin = User::factory()->create();
@@ -96,11 +168,11 @@ class AdminOrderManagementTest extends TestCase
 
     private function createOrder(?Product $product = null): Order
     {
-        $customer = User::factory()->create(['email' => 'customer@example.com']);
+        $customer = User::factory()->create();
         $order = Order::create([
             'user_id' => $customer->id,
             'customer_name' => 'Customer Example',
-            'customer_email' => 'customer@example.com',
+            'customer_email' => $customer->email,
             'customer_phone' => '09123456789',
             'delivery_address' => '123 Example Street, Quezon City',
             'payment_method' => 'Cash on delivery',

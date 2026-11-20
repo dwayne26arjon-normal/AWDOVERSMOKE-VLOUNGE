@@ -45,6 +45,7 @@ h1 { margin: 14px 0 18px; font-size: clamp(26px, 4vw, 36px); }
 .item-product { display: flex; min-width: 0; align-items: center; gap: 14px; }
 .item-select { flex: 0 0 auto; }
 .item-image { display: grid; flex: 0 0 78px; height: 78px; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.035); }
+.item-image img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
 .item-device { position: relative; width: 12px; height: 48px; border-radius: 5px; background: linear-gradient(90deg, #121318, #777987 48%, #1a1b21); }
 .item-device::before { position: absolute; top: -9px; left: 3px; width: 6px; height: 10px; border-radius: 3px 3px 1px 1px; background: #777987; content: ""; }
 .item-details { min-width: 0; }

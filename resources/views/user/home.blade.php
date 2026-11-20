@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/account-menu.css') }}?v={{ filemtime(public_path('css/account-menu.css')) }}">
 </head>
-<body>
+<body data-user-id="{{ auth('web')->id() }}">
 
 <div class="smoke a"></div>
 <div class="smoke b"></div>
@@ -91,11 +91,47 @@
             </div>
         </header>
 
-        <section class="banner" style="background-image: linear-gradient(90deg, rgba(10,6,30,.85), rgba(10,6,30,.2)), url('{{ asset('images/banner.png') }}');">
-            <small>New Arrivals</small>
-            <h2>Featured</h2>
-            <p>Discover Sorted and Quality Products.</p>
-            <a href="#products" class="shop">Shop Now →</a>
+        <section class="banner" style="background-image: linear-gradient(90deg, rgba(5,5,16,.88) 0%, rgba(12,8,35,.48) 46%, rgba(20,12,53,.28) 100%), url('{{ asset('images/smoke-bg.png') }}');">
+            <div class="banner-copy">
+                <small>New Arrivals</small>
+                <h2>Featured</h2>
+                <p>Discover Sorted and Quality Products.</p>
+                <a href="#products" class="shop">Shop Now →</a>
+            </div>
+            @if ($featuredProducts->isNotEmpty())
+                <div class="banner-featured" aria-label="Featured products">
+                    <div class="featured-carousel" data-featured-carousel role="region" aria-roledescription="carousel" aria-label="Featured products">
+                        <div class="featured-carousel-track" aria-live="polite">
+                            @foreach ($featuredProducts as $featuredProduct)
+                                <article class="featured-slide{{ $loop->first ? ' is-active' : '' }}" data-featured-slide aria-roledescription="slide" aria-label="{{ $loop->iteration }} of {{ $featuredProducts->count() }}" @if (!$loop->first) hidden @endif>
+                                    <a class="featured-product-image" href="{{ route('products.show', $featuredProduct->id) }}" aria-label="View {{ $featuredProduct->name }}">
+                                        @if ($featuredProduct->featured_image_path || $featuredProduct->image_path)
+                                            <img class="{{ $featuredProduct->featured_image_path ? 'featured-artwork' : '' }}" src="{{ asset('storage/' . ($featuredProduct->featured_image_path ?: $featuredProduct->image_path)) }}" alt="{{ $featuredProduct->name }}">
+                                        @else
+                                            <span class="banner-featured-placeholder" aria-hidden="true"></span>
+                                        @endif
+                                    </a>
+                                </article>
+                            @endforeach
+                        </div>
+                        @if ($featuredProducts->count() > 1)
+                            <div class="featured-carousel-controls" aria-label="Featured product navigation">
+                                <button class="featured-carousel-arrow" type="button" data-featured-previous aria-label="Previous featured product">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                                </button>
+                                <div class="featured-carousel-dots">
+                                    @foreach ($featuredProducts as $featuredProduct)
+                                        <button class="featured-carousel-dot" type="button" data-featured-dot="{{ $loop->index }}" aria-label="Show featured product {{ $loop->iteration }}" @if ($loop->first) aria-current="true" @endif></button>
+                                    @endforeach
+                                </div>
+                                <button class="featured-carousel-arrow" type="button" data-featured-next aria-label="Next featured product">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </section>
 
         {{-- Ito ang nag-i-scroll --}}
@@ -137,6 +173,9 @@
                             @endif
                         </div>
                         <div class="info">
+                            @if ($product->is_featured)
+                                <span class="featured-label">Featured</span>
+                            @endif
                             <h3><a href="{{ route('products.show', $product->id) }}">{{ $product->name }}</a></h3>
                             <div class="brand">{{ $product->brand }}</div>
                             <div class="price">₱ {{ number_format((float) $product->price) }}</div>

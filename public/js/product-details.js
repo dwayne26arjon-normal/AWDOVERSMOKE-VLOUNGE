@@ -4,18 +4,71 @@
     const subtotal = document.getElementById('subtotal');
     const buyNowDialog = document.getElementById('buyNowDialog');
     const authDialog = document.getElementById('authDialog');
-    const quantityValue = Number(quantityOutput.textContent);
+    const userId = document.body.dataset.userId;
+    const cartKey = `oversmoke-cart-user-${userId}`;
+    const checkoutItemsKey = `oversmoke-checkout-items-user-${userId}`;
+    const checkoutSourceKey = `oversmoke-checkout-source-user-${userId}`;
     const unitPrice = Number(product.dataset.price);
-    let quantity = quantityValue;
-    let color = document.getElementById('selectedColor').textContent;
+    const options = JSON.parse(product.dataset.options || '[]');
+    let quantity = Number(quantityOutput.textContent);
+    let selectedOption = document.querySelector('.color-option.selected');
 
     function formatPrice(price) {
         return new Intl.NumberFormat('en-PH').format(price);
     }
 
     function syncCartCount() {
-        const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
+        const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
         document.getElementById('cartCount').textContent = cart.length;
+    }
+
+    function animateCartFly(imageUrl) {
+        const cartIcon = document.querySelector('.cart-link svg');
+        if (!cartIcon) return;
+
+        const sourceElement = document.querySelector('#productImagePreview img') || document.querySelector('#productImagePreview .device-placeholder');
+        const source = (sourceElement || document.getElementById('addToCart')).getBoundingClientRect();
+        const target = cartIcon.getBoundingClientRect();
+        const flyer = document.createElement(imageUrl ? 'img' : 'span');
+        flyer.className = 'cart-flyer';
+        flyer.setAttribute('aria-hidden', 'true');
+        if (imageUrl) {
+            flyer.src = imageUrl;
+            flyer.alt = '';
+        } else {
+            flyer.classList.add('cart-flyer-placeholder');
+        }
+        const startX = source.left + source.width / 2;
+        const startY = source.top + source.height / 2;
+        const endX = target.left + target.width / 2;
+        const endY = target.top + target.height / 2;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const duration = reducedMotion ? 300 : 850;
+        const startTime = performance.now();
+        flyer.style.left = `${startX}px`;
+        flyer.style.top = `${startY}px`;
+        document.body.append(flyer);
+
+        function animateFrame(timestamp) {
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const eased = 1 - (1 - progress) ** 3;
+            const arc = reducedMotion ? 0 : Math.sin(progress * Math.PI) * 70;
+            flyer.style.left = `${startX + (endX - startX) * eased}px`;
+            flyer.style.top = `${startY + (endY - startY) * eased - arc}px`;
+            flyer.style.transform = `translate(-50%, -50%) scale(${1 - eased * .72})`;
+            flyer.style.opacity = String(1 - eased * .25);
+
+            if (progress < 1) {
+                window.requestAnimationFrame(animateFrame);
+                return;
+            }
+
+            flyer.remove();
+            cartIcon.classList.add('cart-arrived');
+            window.setTimeout(() => cartIcon.classList.remove('cart-arrived'), 450);
+        }
+
+        window.requestAnimationFrame(animateFrame);
     }
 
     const imagePreview = document.getElementById('productImagePreview');
@@ -53,11 +106,14 @@
     syncCartCount();
     window.addEventListener('pageshow', syncCartCount);
     window.addEventListener('storage', event => {
-        if (event.key === 'oversmoke-cart') syncCartCount();
+        if (event.key === cartKey) syncCartCount();
     });
 
     function updateQuantity(nextQuantity) {
-        quantity = Math.max(1, nextQuantity);
+        const stock = selectedOption
+            ? Number(selectedOption.dataset.stock)
+            : Number(product.dataset.stock);
+        quantity = Math.min(Math.max(1, nextQuantity), Math.max(1, stock));
         quantityOutput.textContent = quantity;
         subtotal.textContent = formatPrice(unitPrice * quantity);
     }
@@ -83,8 +139,16 @@
             });
             button.classList.add('selected');
             button.setAttribute('aria-pressed', 'true');
-            color = button.dataset.color;
-            document.getElementById('selectedColor').textContent = color;
+            selectedOption = button;
+            document.getElementById('selectedOption').textContent = button.dataset.option;
+            updateQuantity(quantity);
+        });
+    });
+
+    document.getElementById('optionSearch')?.addEventListener('input', event => {
+        const searchTerm = event.target.value.trim().toLowerCase();
+        document.querySelectorAll('.color-option').forEach(button => {
+            button.hidden = !button.dataset.option.toLowerCase().includes(searchTerm);
         });
     });
 
@@ -97,11 +161,27 @@
             return;
         }
 
-        const cart = JSON.parse(localStorage.getItem('oversmoke-cart') || '[]');
-        const matchingItem = cart.find(item => item.id === Number(product.dataset.id) && item.color === color);
+        const availableStock = selectedOption
+            ? Number(selectedOption.dataset.stock)
+            : Number(product.dataset.stock);
+        if ((options.length && !selectedOption) || availableStock < quantity) {
+            document.getElementById('statusMessage').textContent = 'Choose an available option and quantity.';
+            return;
+        }
+
+        const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
+        const option = selectedOption?.dataset.option || null;
+        const image = productImage();
+        const matchingItem = cart.find(item => item.id === Number(product.dataset.id) && item.color === option);
+
+        if (matchingItem && matchingItem.quantity + quantity > availableStock) {
+            document.getElementById('statusMessage').textContent = `Only ${availableStock} available for this option.`;
+            return;
+        }
 
         if (matchingItem) {
             matchingItem.quantity += quantity;
+            matchingItem.image = image;
         } else {
             cart.push({
                 id: Number(product.dataset.id),
@@ -109,13 +189,14 @@
                 brand: product.dataset.brand,
                 price: unitPrice,
                 quantity,
-                color,
-                image: productImage()
+                color: option,
+                image
             });
         }
 
-        localStorage.setItem('oversmoke-cart', JSON.stringify(cart));
+        localStorage.setItem(cartKey, JSON.stringify(cart));
         syncCartCount();
+        animateCartFly(image);
         document.getElementById('statusMessage').textContent = 'Added to cart.';
     }
 
@@ -129,8 +210,16 @@
             return;
         }
 
+        if ((options.length && !selectedOption) ||
+            (selectedOption && Number(selectedOption.dataset.stock) < quantity) ||
+            (!options.length && Number(product.dataset.stock) < quantity)) {
+            document.getElementById('statusMessage').textContent = 'There is not enough stock for that quantity.';
+            return;
+        }
+
+        const option = selectedOption?.dataset.option;
         document.getElementById('confirmMessage').textContent =
-            `Proceed to checkout with ${quantity} × ${product.dataset.name} in ${color}?`;
+            `Proceed to checkout with ${quantity} × ${product.dataset.name}${option ? ` in ${option}` : ''}?`;
         buyNowDialog.showModal();
     });
 
@@ -143,12 +232,12 @@
             brand: product.dataset.brand,
             price: unitPrice,
             quantity,
-            color,
+            color: selectedOption?.dataset.option || null,
             image: productImage()
         };
 
-        sessionStorage.setItem('oversmoke-checkout-items', JSON.stringify([item]));
-        sessionStorage.setItem('oversmoke-checkout-source', 'buy-now');
+        sessionStorage.setItem(checkoutItemsKey, JSON.stringify([item]));
+        sessionStorage.setItem(checkoutSourceKey, 'buy-now');
         window.location.href = '/checkout';
     });
 })();
