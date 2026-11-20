@@ -13,18 +13,17 @@
 </head>
 <body data-user-id="{{ auth('web')->id() }}">
     <div class="smoke"></div>
-    <header class="topbar">
+    <header class="topbar site-topbar">
         <a class="logo" href="{{ url('/home') }}">
             <img src="{{ asset('images/oversmokev-mascot.png') }}" alt="">
             <span>OVERSMOKE</span>
         </a>
-        <nav>
+        <nav class="site-nav">
             <a href="{{ url('/home') }}">Home</a>
             <a href="{{ route('orders') }}">Orders</a>
-            <a class="active" href="{{ route('cart') }}" aria-current="page">Cart</a>
         </nav>
         <div class="topbar-actions">
-        <a class="cart-link" href="{{ route('cart') }}" aria-label="Cart">
+        <a class="cart-link" href="{{ route('cart') }}" aria-label="Cart" aria-current="page">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
             <span class="cart-count" id="cartCount">0</span>
         </a>

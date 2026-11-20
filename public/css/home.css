@@ -316,6 +316,14 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .view-btn { flex: 0 0 34px; width: 34px; height: 34px; }
 }
 
+@media (max-width: 400px) {
+    .topbar { gap: 8px 10px; padding: 10px 12px; }
+    .nav { gap: 10px; }
+    .top-actions { gap: 10px; }
+    .top-actions .account-actions { gap: 6px; }
+    .top-actions .guest-auth-link { min-height: 34px; padding: 0 9px; font-size: 11px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .banner .shop { animation: none; }
     .marquee-track { animation: none; }

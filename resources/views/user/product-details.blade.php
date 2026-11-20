@@ -13,15 +13,14 @@
 </head>
 <body data-user-id="{{ auth('web')->id() }}">
     <div class="smoke"></div>
-    <header class="topbar">
+    <header class="topbar site-topbar">
         <a class="logo" href="{{ url('/home') }}">
             <img src="{{ asset('images/oversmokev-mascot.png') }}" alt="">
             <span>OVERSMOKE</span>
         </a>
-        <nav>
+        <nav class="site-nav">
             <a href="{{ url('/home') }}">Home</a>
             <a href="{{ route('orders') }}">Orders</a>
-            <a href="{{ route('cart') }}">Cart</a>
         </nav>
         <div class="topbar-actions">
         <a class="cart-link" href="{{ route('cart') }}" aria-label="Cart">

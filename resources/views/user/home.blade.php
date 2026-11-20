@@ -74,7 +74,6 @@
             <nav class="nav">
                 <a href="{{ url('/home') }}" class="active">Home</a>
                 <a href="{{ route('orders') }}">Orders</a>
-                <a href="{{ route('cart') }}">Cart</a>
             </nav>
 
             <div class="search">

@@ -191,7 +191,8 @@ class ProfileTest extends TestCase
                 ->assertOk()
                 ->assertSee('account-button', false)
                 ->assertSee('accountMenu', false)
-                ->assertSee('>Cart</a>', false);
+                ->assertSee('aria-label="Cart"', false)
+                ->assertDontSee('>Cart</a>', false);
         }
     }
 
