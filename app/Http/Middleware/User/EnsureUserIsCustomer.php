@@ -13,12 +13,12 @@ class EnsureUserIsCustomer
     {
         $user = Auth::guard('web')->user();
 
-        if ($user?->is_admin) {
+        if ($user?->is_admin || $user?->is_staff) {
             Auth::guard('web')->logout();
 
             return redirect()
                 ->route('admin.login')
-                ->with('status', 'Admin accounts must sign in through the admin portal.');
+                ->with('status', 'Store staff must sign in through the admin portal.');
         }
 
         return $next($request);

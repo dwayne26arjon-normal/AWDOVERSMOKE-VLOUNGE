@@ -144,10 +144,12 @@
         .submit:hover { filter: brightness(1.13); box-shadow: 0 9px 28px rgba(92, 48, 218, .4); }
         .submit:hover::before { left: 130%; }
         .submit:active { transform: translateY(1px); }
-        .submit:focus-visible, .back-link:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
+        .submit:focus-visible, .back-link:focus-visible, .recovery-link:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
         .divider { height: 1px; margin: 24px 0 18px; border: 0; background: #282432; animation: content-enter .6s .56s both; }
         .back-link { display: block; color: #b9a2ff; font-size: 12px; text-align: center; text-decoration: none; animation: content-enter .6s .62s both; transition: color .2s, transform .2s; }
         .back-link:hover { color: #ded3ff; }
+        .recovery-link { display: block; margin-top: 16px; color: #b9a2ff; font-size: 12px; text-align: center; text-decoration: none; animation: content-enter .6s .58s both; transition: color .2s; }
+        .recovery-link:hover { color: #ded3ff; }
         .status { margin: 0 0 18px; padding: 11px 13px; border: 1px solid rgba(112, 220, 170, .26); border-radius: 7px; background: rgba(30, 130, 80, .12); color: #9de2bd; font-size: 12px; }
         .signup-link { display: block; margin-top: 12px; color: #ded3ff; font-size: 12px; text-align: center; text-decoration: none; animation: content-enter .6s .7s both; transition: color .2s; }
         .signup-link:hover { color: #fff; }
@@ -201,7 +203,7 @@
             <img src="{{ asset('images/oversmokev-logo.png') }}" alt="Oversmoke Vlounge">
             <p class="eyebrow">Admin portal</p>
             <h1>Welcome back</h1>
-            <p class="subtitle">Sign in to manage your store.</p>
+            <p class="subtitle">Owners and staff can sign in to manage the store.</p>
         </header>
 
         @if ($errors->any())
@@ -217,7 +219,7 @@
             @csrf
 
             <div class="field">
-                <label for="email">Admin email</label>
+                <label for="email">Owner or staff email</label>
                 <input
                     type="email"
                     id="email"
@@ -254,6 +256,7 @@
             <button class="submit" type="submit">SIGN IN</button>
         </form>
 
+        <a class="recovery-link" href="{{ route('admin.password.request') }}">Forgot your password?</a>
         <hr class="divider">
         @if ($adminRegistrationOpen)
             <a class="signup-link" href="{{ route('admin.register') }}">Owner? Create the first admin account</a>

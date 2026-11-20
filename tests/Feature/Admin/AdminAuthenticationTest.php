@@ -16,6 +16,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertOk()
             ->assertSee('Admin portal')
             ->assertSee(route('admin.register'))
+            ->assertSee(route('admin.password.request'))
             ->assertSee(route('admin.login.store'), false);
     }
 
@@ -84,6 +85,25 @@ class AdminAuthenticationTest extends TestCase
             ->assertSee('Sign out');
     }
 
+    public function test_staff_can_sign_in_through_the_admin_portal(): void
+    {
+        $staff = User::factory()->create([
+            'email' => 'staff@example.com',
+            'password' => 'password',
+        ]);
+        $staff->is_staff = true;
+        $staff->save();
+
+        $this->post(route('admin.login.store'), [
+            'email' => 'staff@example.com',
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Store staff');
+    }
+
     public function test_customer_cannot_sign_in_through_the_admin_login(): void
     {
         User::factory()->create([
@@ -129,6 +149,26 @@ class AdminAuthenticationTest extends TestCase
         $this->actingAs($customer)
             ->get(route('admin.dashboard'))
             ->assertForbidden();
+    }
+
+    public function test_staff_cannot_sign_in_through_the_customer_login(): void
+    {
+        $staff = User::factory()->create([
+            'email' => 'staff@example.com',
+            'password' => 'password',
+        ]);
+        $staff->is_staff = true;
+        $staff->save();
+
+        $this->from(route('login'))
+            ->post(route('login'), [
+                'email' => 'staff@example.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest('web');
     }
 
     public function test_admin_and_customer_sessions_are_independent(): void

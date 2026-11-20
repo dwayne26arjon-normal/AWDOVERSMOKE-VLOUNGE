@@ -15,7 +15,9 @@ class AdminAuthController extends Controller
 {
     public function showLogin(Request $request): View|RedirectResponse
     {
-        if (Auth::guard('admin')->user()?->is_admin) {
+        $admin = Auth::guard('admin')->user();
+
+        if ($admin?->is_admin || $admin?->is_staff) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -77,10 +79,16 @@ class AdminAuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::guard('admin')->attempt([
-            ...$credentials,
-            'is_admin' => true,
-        ], $request->boolean('remember'))) {
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->where(function ($query) {
+                $query->where('is_admin', true)
+                    ->orWhere('is_staff', true);
+            })
+            ->first();
+
+        if ($user && Hash::check($credentials['password'], $user->password)) {
+            Auth::guard('admin')->login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
             return redirect()->intended(route('admin.dashboard'));

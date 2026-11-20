@@ -19,7 +19,7 @@ class EnsureUserIsAdmin
             return redirect()->route('admin.login');
         }
 
-        abort_unless($admin->is_admin, 403);
+        abort_unless($admin->is_admin || $admin->is_staff, 403);
 
         return $next($request);
     }

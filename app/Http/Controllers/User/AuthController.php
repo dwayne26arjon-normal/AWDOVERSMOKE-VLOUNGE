@@ -23,6 +23,7 @@ class AuthController extends Controller
                 $query->where('is_admin', false)
                     ->orWhereNull('is_admin');
             })
+            ->where('is_staff', false)
             ->first();
 
         if ($user && Hash::check($credentials['password'], $user->password)) {

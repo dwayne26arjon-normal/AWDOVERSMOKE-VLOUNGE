@@ -145,6 +145,9 @@
                 <a class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" href="{{ route('admin.products.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/products.png') }}" alt=""><span class="nav-text">Products</span></a>
                 <a class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/inventory.png') }}" alt=""><span class="nav-text">Inventory</span></a>
                 <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/orders.png') }}" alt=""><span class="nav-text">Orders</span></a>
+                @if (auth('admin')->user()->is_admin)
+                    <a class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}" href="{{ route('admin.staff.index') }}"><img class="nav-icon" src="{{ asset('images/admin-icons/settings.png') }}" alt=""><span class="nav-text">Staff</span></a>
+                @endif
                 <span class="nav-link disabled" aria-disabled="true" title="Settings are not available in the admin area yet"><img class="nav-icon" src="{{ asset('images/admin-icons/settings.png') }}" alt=""><span class="nav-text">Settings</span></span>
             </nav>
             <div class="sidebar-bottom">
@@ -180,7 +183,7 @@
                     <button class="admin-profile-button" id="adminProfileButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="adminAccountMenu">
                         <span class="admin-profile-copy">
                             <strong>{{ auth('admin')->user()->name }}</strong>
-                            <span>Store administrator</span>
+                            <span>{{ auth('admin')->user()->is_admin ? 'Store owner' : 'Store staff' }}</span>
                         </span>
                         <span class="avatar" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(auth('admin')->user()->name, 0, 1)) }}</span>
                     </button>

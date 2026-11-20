@@ -40,6 +40,7 @@ class PasswordResetController extends Controller
                 $query->where('is_admin', false)
                     ->orWhereNull('is_admin');
             })
+            ->where('is_staff', false)
             ->first();
 
         if ($customer) {
@@ -104,6 +105,7 @@ class PasswordResetController extends Controller
                 $query->where('is_admin', false)
                     ->orWhereNull('is_admin');
             })
+            ->where('is_staff', false)
             ->first();
         $resetRecord = $customer
             ? DB::table('password_reset_tokens')->where('email', $customer->email)->first()
@@ -172,6 +174,7 @@ class PasswordResetController extends Controller
                 $query->where('is_admin', false)
                     ->orWhereNull('is_admin');
             })
+            ->where('is_staff', false)
             ->first();
 
         if (! $customer) {

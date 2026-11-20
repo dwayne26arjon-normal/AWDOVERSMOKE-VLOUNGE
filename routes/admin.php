@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminPasswordResetController;
 use App\Http\Controllers\Admin\AdminProductController;
+use App\Http\Controllers\Admin\AdminStaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -10,6 +12,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.store');
     Route::get('/register', [AdminAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AdminAuthController::class, 'register'])->name('register.store');
+    Route::get('/forgot-password', [AdminPasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [AdminPasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/verify-reset-code', [AdminPasswordResetController::class, 'showCodeForm'])->name('password.code');
+    Route::post('/verify-reset-code', [AdminPasswordResetController::class, 'verifyCode'])->middleware('throttle:10,1')->name('password.code.verify');
+    Route::get('/reset-password', [AdminPasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [AdminPasswordResetController::class, 'reset'])->name('password.store');
 
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminProductController::class, 'dashboard'])->name('dashboard');
@@ -28,5 +36,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/products/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/inventory', [AdminProductController::class, 'inventory'])->name('inventory.index');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+
+        Route::middleware('admin.owner')->group(function () {
+            Route::get('/staff', [AdminStaffController::class, 'index'])->name('staff.index');
+            Route::post('/staff', [AdminStaffController::class, 'store'])->name('staff.store');
+            Route::delete('/staff/{staff}', [AdminStaffController::class, 'destroy'])->name('staff.destroy');
+        });
     });
 });
