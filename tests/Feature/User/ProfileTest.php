@@ -120,11 +120,33 @@ class ProfileTest extends TestCase
             ->get('/home')
             ->assertOk()
             ->assertSee('Hi, Dwayne')
+            ->assertSee('account-notification-toggle', false)
+            ->assertSee('data-notification-toggle', false)
             ->assertSee('Refine products')
             ->assertSee('Categories')
             ->assertSee('Price Range')
             ->assertSee('Cloud Berry')
             ->assertSee('Vape Co');
+    }
+
+    public function test_notification_preference_is_in_the_account_menu(): void
+    {
+        $user = User::factory()->create();
+        $html = $this->actingAs($user)->get('/home')->assertOk()->getContent();
+        $accountMenuStart = strpos($html, 'id="accountMenu"');
+        $accountMenuEnd = strpos($html, '</div>', $accountMenuStart);
+        $togglePosition = strpos($html, 'class="account-notification-toggle"');
+        $notificationMenuStart = strpos($html, 'id="userNotificationMenu"');
+        $notificationMenuEnd = strpos($html, '</section>', $notificationMenuStart);
+
+        $this->assertNotFalse($accountMenuStart);
+        $this->assertNotFalse($accountMenuEnd);
+        $this->assertNotFalse($togglePosition);
+        $this->assertNotFalse($notificationMenuStart);
+        $this->assertNotFalse($notificationMenuEnd);
+        $this->assertGreaterThan($accountMenuStart, $togglePosition);
+        $this->assertLessThan($accountMenuEnd, $togglePosition);
+        $this->assertFalse($togglePosition > $notificationMenuStart && $togglePosition < $notificationMenuEnd);
     }
 
     public function test_inactive_products_are_hidden_from_the_customer_catalog(): void

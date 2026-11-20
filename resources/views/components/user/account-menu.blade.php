@@ -19,10 +19,6 @@
                     <strong>Order updates</strong>
                     <button class="user-notification-read-all" type="button" data-notification-read-all>Mark all read</button>
                 </div>
-                <label class="user-notification-toggle">
-                    <input type="checkbox" data-notification-toggle>
-                    <span>Notifications <strong data-notification-state>On</strong></span>
-                </label>
                 <p class="user-notification-status" data-notification-status role="status" aria-live="polite"></p>
                 <div class="user-notification-list" data-notification-list aria-live="polite"></div>
             </section>
@@ -34,6 +30,12 @@
         </button>
         <div class="account-menu" id="accountMenu" hidden>
             <a href="{{ route('profile.edit') }}">Edit profile</a>
+            <label class="account-notification-toggle">
+                <span>Order notifications</span>
+                <input type="checkbox" role="switch" aria-label="Order notifications" data-notification-toggle @checked(auth('web')->user()->order_notifications_enabled)>
+                <strong data-notification-state>{{ auth('web')->user()->order_notifications_enabled ? 'On' : 'Off' }}</strong>
+            </label>
+            <p class="account-notification-status" data-notification-setting-status role="status" aria-live="polite" hidden></p>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit">Log out</button>

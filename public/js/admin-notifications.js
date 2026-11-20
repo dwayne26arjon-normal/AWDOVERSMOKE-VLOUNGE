@@ -6,61 +6,22 @@
     const menu = document.getElementById('notificationMenu');
     const list = document.getElementById('notificationList');
     const count = document.getElementById('notificationCount');
-    const toast = document.getElementById('orderToast');
-    const storageKey = `admin-order-notifications-${root.dataset.adminId}`;
-    const cursorKey = `${storageKey}-cursor`;
-    const orderUrl = root.dataset.orderUrlTemplate;
-    let notifications = [];
-    try {
-        const savedNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        notifications = Array.isArray(savedNotifications) ? savedNotifications : [];
-    } catch (error) {
-        console.error('Unable to read saved admin notifications.', error);
-    }
-    let toastTimer;
+    const status = document.getElementById('notificationStatus');
+    const markAllButton = document.getElementById('markAllNotificationsRead');
+    const csrfToken = root.dataset.csrfToken;
+    let knownIds = new Set();
+    let initialized = false;
     let checking = false;
-
-    function saveNotifications() {
-        localStorage.setItem(storageKey, JSON.stringify(notifications));
-    }
-
-    function renderNotifications() {
-        list.replaceChildren();
-        count.hidden = notifications.length === 0;
-        count.textContent = notifications.length > 99 ? '99+' : String(notifications.length);
-
-        if (!notifications.length) {
-            const empty = document.createElement('p');
-            empty.className = 'notification-empty';
-            empty.textContent = 'No new purchases.';
-            list.append(empty);
-            return;
-        }
-
-        [...notifications].reverse().forEach(notification => {
-            const link = document.createElement('a');
-            link.className = 'notification-item';
-            link.href = orderUrl.replace('__ORDER_ID__', encodeURIComponent(notification.id));
-            const title = document.createElement('strong');
-            title.textContent = `Order ${notification.number}`;
-            const details = document.createElement('span');
-            details.textContent = `${notification.buyer} · ${notification.items} item${notification.items === 1 ? '' : 's'} · ₱${Number(notification.total).toLocaleString('en-PH')}`;
-            link.append(title, details);
-            link.addEventListener('click', () => {
-                notifications = notifications.filter(item => item.id !== notification.id);
-                saveNotifications();
-            });
-            list.append(link);
-        });
-    }
+    let toastTimer;
 
     function showToast(notification) {
+        const toast = document.getElementById('orderToast');
         toast.replaceChildren();
         const title = document.createElement('strong');
         title.textContent = 'New purchase received';
         const link = document.createElement('a');
-        link.href = orderUrl.replace('__ORDER_ID__', encodeURIComponent(notification.id));
-        link.textContent = `${notification.number} from ${notification.buyer} · ₱${Number(notification.total).toLocaleString('en-PH')}`;
+        link.href = notification.url;
+        link.textContent = `${notification.order_number} from ${notification.buyer} · ₱${Number(notification.total).toLocaleString('en-PH')}`;
         toast.append(title, link);
         toast.hidden = false;
         window.clearTimeout(toastTimer);
@@ -69,75 +30,120 @@
         }, 7000);
     }
 
-    async function checkForOrders() {
-        if (document.visibilityState !== 'visible' || checking) return;
+    async function sendRequest(url, method = 'PATCH') {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error(`Notification request failed with status ${response.status}.`);
+        return response.json();
+    }
+
+    function renderNotifications(payload) {
+        const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
+        const unreadCount = Number(payload.unread_count) || 0;
+        count.hidden = unreadCount === 0;
+        count.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        list.replaceChildren();
+
+        if (!notifications.length) {
+            const empty = document.createElement('p');
+            empty.className = 'notification-empty';
+            empty.textContent = 'No order notifications yet.';
+            list.append(empty);
+            return;
+        }
+
+        notifications.forEach(notification => {
+            const link = document.createElement('a');
+            link.className = 'notification-item';
+            if (!notification.read_at) link.classList.add('is-unread');
+            link.href = notification.url;
+
+            const title = document.createElement('strong');
+            title.textContent = notification.order_number;
+            const details = document.createElement('span');
+            details.textContent = `${notification.buyer} · ${notification.items} item${notification.items === 1 ? '' : 's'} · ₱${Number(notification.total).toLocaleString('en-PH')}`;
+            const date = document.createElement('time');
+            date.dateTime = notification.created_at;
+            date.textContent = new Date(notification.created_at).toLocaleString();
+            link.append(title, details, date);
+            link.addEventListener('click', async event => {
+                if (notification.read_at) return;
+
+                event.preventDefault();
+                try {
+                    await sendRequest(root.dataset.readUrlTemplate.replace('__NOTIFICATION_ID__', encodeURIComponent(notification.id)));
+                    window.location.assign(link.href);
+                } catch (error) {
+                    console.error('Unable to mark the admin notification as read.', error);
+                    status.textContent = 'Could not open this notification. Please try again.';
+                }
+            });
+            list.append(link);
+        });
+    }
+
+    async function refreshNotifications() {
+        if (checking || document.visibilityState !== 'visible') return;
 
         checking = true;
         try {
-            let cursor = localStorage.getItem(cursorKey);
-            if (cursor !== null && !/^\d+$/.test(cursor)) {
-                console.warn('Resetting an invalid admin notification cursor.');
-                localStorage.removeItem(cursorKey);
-                cursor = null;
-            }
-            const url = new URL(root.dataset.endpoint, window.location.origin);
-            if (cursor !== null) url.searchParams.set('after', cursor);
-
-            const response = await fetch(url, {
+            const response = await fetch(root.dataset.endpoint, {
                 headers: { Accept: 'application/json' },
-                credentials: 'same-origin'
+                credentials: 'same-origin',
+                cache: 'no-store'
             });
-            if (!response.ok) throw new Error(`Order notification request failed with status ${response.status}.`);
+            if (!response.ok) throw new Error(`Notification request failed with status ${response.status}.`);
+
             const payload = await response.json();
-            if (cursor !== null && Number(cursor) > Number(payload.latest_id)) {
-                notifications = [];
-                localStorage.removeItem(storageKey);
-                localStorage.setItem(cursorKey, String(payload.latest_id));
-                renderNotifications();
-                return;
-            }
+            const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
+            const freshNotification = initialized
+                ? notifications.find(notification => !knownIds.has(notification.id) && !notification.read_at)
+                : null;
 
-            localStorage.setItem(cursorKey, String(payload.cursor));
-            if (cursor === null || !payload.orders.length) return;
-
-            const knownIds = new Set(notifications.map(notification => notification.id));
-            const freshOrders = payload.orders.filter(order => !knownIds.has(order.id));
-            if (!freshOrders.length) return;
-
-            notifications = [...notifications, ...freshOrders].slice(-30);
-            saveNotifications();
-            renderNotifications();
-            showToast(freshOrders[freshOrders.length - 1]);
-
-            if (root.dataset.refreshOnNewOrder === 'true') {
-                window.setTimeout(() => window.location.reload(), 1200);
-            }
+            knownIds = new Set(notifications.map(notification => notification.id));
+            renderNotifications(payload);
+            if (freshNotification) showToast(freshNotification);
+            initialized = true;
+            status.textContent = '';
         } finally {
             checking = false;
         }
     }
 
-    renderNotifications();
-    checkForOrders().catch(error => console.error('Unable to check for new orders.', error));
-    window.setInterval(() => {
-        checkForOrders().catch(error => console.error('Unable to check for new orders.', error));
-    }, 5000);
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            checkForOrders().catch(error => console.error('Unable to check for new orders.', error));
-        }
-    });
+    function refreshWithErrorHandling() {
+        refreshNotifications().catch(error => {
+            console.error('Unable to load admin order notifications.', error);
+            status.textContent = 'Order notifications could not be loaded. Please try again.';
+        });
+    }
 
     button.addEventListener('click', () => {
         const open = button.getAttribute('aria-expanded') !== 'true';
         button.setAttribute('aria-expanded', String(open));
         menu.hidden = !open;
+        if (open) refreshWithErrorHandling();
     });
-    document.getElementById('clearNotifications').addEventListener('click', () => {
-        notifications = [];
-        saveNotifications();
-        renderNotifications();
+
+    markAllButton.addEventListener('click', async () => {
+        markAllButton.disabled = true;
+        try {
+            await sendRequest(root.dataset.readAllUrl);
+            await refreshNotifications();
+            status.textContent = 'All notifications marked as read.';
+        } catch (error) {
+            console.error('Unable to mark admin notifications as read.', error);
+            status.textContent = 'Could not mark notifications as read. Please try again.';
+        } finally {
+            markAllButton.disabled = false;
+        }
     });
+
     document.addEventListener('click', event => {
         if (!event.target.closest('#adminNotifications')) {
             menu.hidden = true;
@@ -150,5 +156,11 @@
             button.setAttribute('aria-expanded', 'false');
             button.focus();
         }
+    });
+
+    refreshWithErrorHandling();
+    window.setInterval(refreshWithErrorHandling, 10000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshWithErrorHandling();
     });
 })();

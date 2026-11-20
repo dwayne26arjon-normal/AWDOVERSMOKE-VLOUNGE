@@ -49,10 +49,13 @@
         .notification-clear { border: 0; background: none; color: #ab91ff; font: inherit; font-size: 9px; cursor: pointer; }
         .notification-list { max-height: 310px; overflow-y: auto; }
         .notification-item { display: block; padding: 11px 12px; border-bottom: 1px solid rgba(48,42,59,.65); color: #c9c3d1; font-size: 10px; text-decoration: none; }
+        .notification-item.is-unread { background: rgba(116,79,205,.1); }
         .notification-item:last-child { border-bottom: 0; }
         .notification-item:hover, .notification-item:focus-visible { outline: 0; background: rgba(116,79,205,.14); }
         .notification-item strong { display: block; margin-bottom: 4px; color: #f1ecfa; font-size: 10px; }
         .notification-empty { padding: 22px 12px; color: #888291; font-size: 10px; text-align: center; }
+        .notification-status { padding: 8px 12px; color: #aaa3b5; font-size: 10px; }
+        .notification-status:empty { display: none; }
         .order-toast { position: fixed; top: 66px; right: 24px; z-index: 20; width: min(340px, calc(100vw - 32px)); padding: 13px 15px; border: 1px solid rgba(132,99,235,.55); border-radius: 8px; background: #1b1726; box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 24px rgba(112,69,235,.2); color: #eee9f6; font-size: 11px; animation: notification-in .25s ease-out both; }
         .order-toast[hidden] { display: none; }
         .order-toast strong { display: block; margin-bottom: 4px; font-size: 12px; }
@@ -165,18 +168,19 @@
                 <div class="admin-notifications"
                      id="adminNotifications"
                      data-endpoint="{{ route('admin.orders.notifications') }}"
-                     data-admin-id="{{ auth('admin')->id() }}"
-                     data-refresh-on-new-order="{{ request()->routeIs('admin.dashboard', 'admin.orders.index') ? 'true' : 'false' }}"
-                     data-order-url-template="{{ route('admin.orders.show', ['order' => '__ORDER_ID__']) }}">
+                     data-read-url-template="{{ route('admin.orders.notifications.read', ['notification' => '__NOTIFICATION_ID__']) }}"
+                     data-read-all-url="{{ route('admin.orders.notifications.read-all') }}"
+                     data-csrf-token="{{ csrf_token() }}">
                     <button class="notification-button" id="notificationButton" type="button" aria-label="Order notifications" aria-expanded="false" aria-controls="notificationMenu">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
                         <span class="notification-count" id="notificationCount" hidden></span>
                     </button>
                     <div class="notification-menu" id="notificationMenu" hidden>
                         <div class="notification-heading">
-                            <span>New purchases</span>
-                            <button class="notification-clear" id="clearNotifications" type="button">Clear all</button>
+                            <span>Order notifications</span>
+                            <button class="notification-clear" id="markAllNotificationsRead" type="button">Mark all read</button>
                         </div>
+                        <p class="notification-status" id="notificationStatus" role="status" aria-live="polite"></p>
                         <div class="notification-list" id="notificationList" aria-live="polite"></div>
                     </div>
                 </div>

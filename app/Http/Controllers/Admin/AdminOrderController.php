@@ -7,6 +7,7 @@ use App\Mail\OrderInvoiceMail;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Notifications\NewOrderReceived;
 use App\Notifications\OrderStatusUpdated;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,34 +25,55 @@ class AdminOrderController extends Controller
 {
     public function notifications(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'after' => ['sometimes', 'integer', 'min:0'],
-        ]);
-        $latestId = (int) Order::query()->max('id');
-
-        if (! array_key_exists('after', $validated)) {
-            return response()->json(['cursor' => $latestId, 'latest_id' => $latestId, 'orders' => []])
-                ->header('Cache-Control', 'no-store');
-        }
-
-        $orders = Order::query()
-            ->where('id', '>', $validated['after'])
-            ->withCount('items')
-            ->orderBy('id')
-            ->limit(20)
+        $admin = $request->user('admin');
+        $notifications = $admin->notifications()
+            ->where('type', NewOrderReceived::class)
+            ->latest()
+            ->limit(30)
             ->get();
 
         return response()->json([
-            'cursor' => $orders->last()?->id ?? max($validated['after'], $latestId),
-            'latest_id' => $latestId,
-            'orders' => $orders->map(fn (Order $order) => [
-                'id' => $order->id,
-                'number' => $order->order_number,
-                'buyer' => $order->customer_name,
-                'total' => (float) $order->total,
-                'items' => $order->items_count,
-            ]),
+            'unread_count' => $admin->unreadNotifications()
+                ->where('type', NewOrderReceived::class)
+                ->count(),
+            'notifications' => $notifications->map(fn ($notification) => [
+                'id' => $notification->id,
+                'order_number' => $notification->data['order_number'] ?? 'Order update',
+                'buyer' => $notification->data['buyer'] ?? 'Customer',
+                'total' => (float) ($notification->data['total'] ?? 0),
+                'items' => (int) ($notification->data['items'] ?? 0),
+                'message' => $notification->data['message'] ?? 'A new order was placed.',
+                'url' => route('admin.orders.show', ['order' => (int) ($notification->data['order_id'] ?? 0)]),
+                'read_at' => $notification->read_at?->toIso8601String(),
+                'created_at' => $notification->created_at?->toIso8601String(),
+            ])->values(),
         ])->header('Cache-Control', 'no-store');
+    }
+
+    public function markNotificationRead(Request $request, string $notification): JsonResponse
+    {
+        $admin = $request->user('admin');
+        $admin->notifications()
+            ->where('type', NewOrderReceived::class)
+            ->whereKey($notification)
+            ->firstOrFail()
+            ->markAsRead();
+
+        return response()->json([
+            'unread_count' => $admin->unreadNotifications()
+                ->where('type', NewOrderReceived::class)
+                ->count(),
+        ]);
+    }
+
+    public function markAllNotificationsRead(Request $request): JsonResponse
+    {
+        $admin = $request->user('admin');
+        $admin->unreadNotifications()
+            ->where('type', NewOrderReceived::class)
+            ->update(['read_at' => now()]);
+
+        return response()->json(['unread_count' => 0]);
     }
 
     public function index(Request $request): View

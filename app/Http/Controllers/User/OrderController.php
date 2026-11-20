@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
+use App\Notifications\NewOrderReceived;
+use App\Notifications\OrderPlaced;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +153,13 @@ class OrderController extends Controller
             foreach ($quantities as $productId => $quantity) {
                 $products->get($productId)->decrement('stock', $quantity);
             }
+
+            $order->loadCount('items');
+            $request->user()->notify(new OrderPlaced($order));
+            User::query()
+                ->where(fn ($query) => $query->where('is_admin', true)->orWhere('is_staff', true))
+                ->get()
+                ->each(fn (User $recipient) => $recipient->notify(new NewOrderReceived($order)));
 
             return $order;
         });

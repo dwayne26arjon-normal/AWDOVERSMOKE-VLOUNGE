@@ -5,8 +5,10 @@
     const button = root.querySelector('#userNotificationButton');
     const menu = root.querySelector('#userNotificationMenu');
     const count = root.querySelector('[data-notification-count]');
-    const toggle = root.querySelector('[data-notification-toggle]');
-    const toggleState = root.querySelector('[data-notification-state]');
+    const accountActions = root.parentElement;
+    const toggle = accountActions.querySelector('[data-notification-toggle]');
+    const toggleState = accountActions.querySelector('[data-notification-state]');
+    const settingStatus = accountActions.querySelector('[data-notification-setting-status]');
     const status = root.querySelector('[data-notification-status]');
     const list = root.querySelector('[data-notification-list]');
     const toast = root.querySelector('[data-notification-toast]');
@@ -18,6 +20,11 @@
 
     function showStatus(message) {
         status.textContent = message;
+    }
+
+    function showSettingStatus(message) {
+        settingStatus.textContent = message;
+        settingStatus.hidden = !message;
     }
 
     function showToast(notification) {
@@ -136,11 +143,11 @@
             const payload = await sendRequest(root.dataset.settingsUrl, 'PATCH', { enabled: toggle.checked });
             toggle.checked = payload.enabled;
             toggleState.textContent = payload.enabled ? 'On' : 'Off';
-            showStatus(payload.enabled ? 'Order notifications are on.' : 'Order notifications are off.');
+            showSettingStatus(payload.enabled ? 'Order notifications are on.' : 'Order notifications are off.');
         } catch (error) {
             console.error('Unable to update order notification settings.', error);
             toggle.checked = !toggle.checked;
-            showStatus('Could not save your notification setting. Please try again.');
+            showSettingStatus('Could not save your notification setting. Please try again.');
         } finally {
             toggle.disabled = false;
         }

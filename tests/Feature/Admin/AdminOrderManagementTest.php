@@ -6,6 +6,7 @@ use App\Mail\OrderInvoiceMail;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\NewOrderReceived;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -48,34 +49,37 @@ class AdminOrderManagementTest extends TestCase
             ->assertSee('Cloud Berry');
     }
 
-    public function test_admin_order_notifications_return_only_orders_after_cursor(): void
+    public function test_admin_order_notifications_are_persistent_and_can_be_marked_read(): void
     {
         $admin = $this->createAdmin();
-        $existingOrder = $this->createOrder();
+        $order = $this->createOrder();
+        $admin->notify(new NewOrderReceived($order));
+        $notification = $admin->notifications()->firstOrFail();
 
         $this->actingAs($admin, 'admin')
             ->getJson(route('admin.orders.notifications'))
             ->assertOk()
-            ->assertJsonPath('cursor', $existingOrder->id)
-            ->assertJsonPath('latest_id', $existingOrder->id)
-            ->assertJsonCount(0, 'orders');
-
-        $newOrder = $this->createOrder();
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.order_number', $order->order_number)
+            ->assertJsonPath('notifications.0.buyer', $order->customer_name);
 
         $this->actingAs($admin, 'admin')
-            ->getJson(route('admin.orders.notifications', ['after' => $existingOrder->id]))
+            ->patchJson(route('admin.orders.notifications.read', $notification->id))
             ->assertOk()
-            ->assertJsonPath('cursor', $newOrder->id)
-            ->assertJsonPath('latest_id', $newOrder->id)
-            ->assertJsonPath('orders.0.number', $newOrder->order_number)
-            ->assertJsonPath('orders.0.buyer', $newOrder->customer_name)
-            ->assertJsonPath('orders.0.items', 1);
+            ->assertJsonPath('unread_count', 0);
+
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0)
+            ->assertJsonPath('notifications.0.read_at', fn ($value) => $value !== null);
 
         $this->actingAs($admin, 'admin')
             ->get(route('admin.orders.index'))
             ->assertOk()
             ->assertSee('id="notificationButton"', false)
-            ->assertSee('New purchases')
+            ->assertSee('Order notifications')
+            ->assertSee('Mark all read')
             ->assertSee('admin-notifications.js');
     }
 

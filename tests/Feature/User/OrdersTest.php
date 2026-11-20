@@ -17,6 +17,13 @@ class OrdersTest extends TestCase
     public function test_customer_can_place_an_order_using_database_prices_and_stock(): void
     {
         $customer = User::factory()->create(['email' => 'customer@example.com']);
+        $customer->refresh();
+        $admin = User::factory()->create();
+        $admin->is_admin = true;
+        $admin->save();
+        $staff = User::factory()->create();
+        $staff->is_staff = true;
+        $staff->save();
         $product = Product::create([
             'name' => 'Cloud Berry',
             'brand' => 'Vape Co',
@@ -51,6 +58,33 @@ class OrdersTest extends TestCase
         $this->assertCount(2, $order->items);
         $this->assertSame(8, $product->fresh()->stock);
         $this->assertSame('0.00', $order->shipping_fee);
+        $this->assertDatabaseCount('notifications', 3);
+
+        $this->actingAs($customer, 'web')
+            ->getJson(route('user.notifications.index'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.order_number', 'OS-000001')
+            ->assertJsonPath('notifications.0.message', 'We received your order and are processing it.');
+
+        $adminNotification = $admin->notifications()->firstOrFail();
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.order_number', 'OS-000001')
+            ->assertJsonPath('notifications.0.items', 2);
+
+        $this->actingAs($admin, 'admin')
+            ->patchJson(route('admin.orders.notifications.read', $adminNotification->id))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+
+        $this->actingAs($staff, 'admin')
+            ->getJson(route('admin.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.order_number', 'OS-000001');
     }
 
     public function test_customer_order_is_rejected_if_inventory_is_insufficient(): void
