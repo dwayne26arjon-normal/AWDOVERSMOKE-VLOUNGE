@@ -10,7 +10,13 @@
     const storageKey = `admin-order-notifications-${root.dataset.adminId}`;
     const cursorKey = `${storageKey}-cursor`;
     const orderUrl = root.dataset.orderUrlTemplate;
-    let notifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    let notifications = [];
+    try {
+        const savedNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        notifications = Array.isArray(savedNotifications) ? savedNotifications : [];
+    } catch (error) {
+        console.error('Unable to read saved admin notifications.', error);
+    }
     let toastTimer;
     let checking = false;
 
@@ -68,7 +74,12 @@
 
         checking = true;
         try {
-            const cursor = localStorage.getItem(cursorKey);
+            let cursor = localStorage.getItem(cursorKey);
+            if (cursor !== null && !/^\d+$/.test(cursor)) {
+                console.warn('Resetting an invalid admin notification cursor.');
+                localStorage.removeItem(cursorKey);
+                cursor = null;
+            }
             const url = new URL(root.dataset.endpoint, window.location.origin);
             if (cursor !== null) url.searchParams.set('after', cursor);
 
@@ -78,6 +89,13 @@
             });
             if (!response.ok) throw new Error(`Order notification request failed with status ${response.status}.`);
             const payload = await response.json();
+            if (cursor !== null && Number(cursor) > Number(payload.latest_id)) {
+                notifications = [];
+                localStorage.removeItem(storageKey);
+                localStorage.setItem(cursorKey, String(payload.latest_id));
+                renderNotifications();
+                return;
+            }
 
             localStorage.setItem(cursorKey, String(payload.cursor));
             if (cursor === null || !payload.orders.length) return;

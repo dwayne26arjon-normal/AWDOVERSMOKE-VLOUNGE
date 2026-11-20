@@ -86,6 +86,203 @@
     margin-left: 0;
 }
 
+.user-notifications {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.user-notification-button {
+    position: relative;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid var(--line, #292a3c);
+    border-radius: 999px;
+    color: #e6e3f2;
+    background: rgba(255,255,255,.035);
+    cursor: pointer;
+}
+
+.user-notification-button:hover,
+.user-notification-button:focus-visible,
+.user-notification-button[aria-expanded="true"] {
+    border-color: rgba(124,92,240,.7);
+    background: rgba(124,92,240,.12);
+}
+
+.user-notification-button:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 3px;
+}
+
+.user-notification-button svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.user-notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: grid;
+    min-width: 17px;
+    height: 17px;
+    place-items: center;
+    padding: 0 4px;
+    border: 1px solid #101018;
+    border-radius: 999px;
+    color: #fff;
+    background: #e74d70;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.user-notification-count[hidden] {
+    display: none;
+}
+
+.user-notification-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 40;
+    width: min(340px, calc(100vw - 24px));
+    overflow: hidden;
+    border: 1px solid var(--line, #292a3c);
+    border-radius: 12px;
+    background: var(--panel, #101018);
+    box-shadow: 0 14px 36px rgba(0,0,0,.48);
+}
+
+.user-notification-menu[hidden] {
+    display: none;
+}
+
+.user-notification-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line, #292a3c);
+    font-size: 12px;
+}
+
+.user-notification-read-all {
+    padding: 5px;
+    border: 0;
+    color: #b6a5ff;
+    background: transparent;
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.user-notification-toggle {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line, #292a3c);
+    color: var(--muted, #a4a4b7);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.user-notification-toggle input {
+    accent-color: var(--primary, #7c5cf0);
+}
+
+.user-notification-toggle strong {
+    margin-left: 4px;
+    color: #c4b5fd;
+}
+
+.user-notification-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.user-notification-item {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(48,42,59,.65);
+    color: var(--muted, #a4a4b7);
+    font-size: 10px;
+    text-decoration: none;
+}
+
+.user-notification-item:last-child {
+    border-bottom: 0;
+}
+
+.user-notification-item:hover,
+.user-notification-item:focus-visible {
+    outline: 0;
+    background: rgba(124,92,240,.12);
+}
+
+.user-notification-item.is-unread {
+    background: rgba(124,92,240,.07);
+}
+
+.user-notification-item strong {
+    color: #f1ecfa;
+    font-size: 11px;
+}
+
+.user-notification-item time {
+    color: #827b91;
+    font-size: 9px;
+}
+
+.user-notification-empty,
+.user-notification-status {
+    margin: 0;
+    padding: 10px 14px;
+    color: var(--muted, #a4a4b7);
+    font-size: 10px;
+}
+
+.user-notification-empty {
+    padding: 22px 14px;
+    text-align: center;
+}
+
+.user-notification-toast {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    z-index: 60;
+    display: grid;
+    width: min(340px, calc(100vw - 24px));
+    gap: 4px;
+    padding: 13px 15px;
+    border: 1px solid rgba(132,99,235,.55);
+    border-radius: 10px;
+    color: #eee9f6;
+    background: #1b1726;
+    box-shadow: 0 14px 36px rgba(0,0,0,.48);
+    font-size: 11px;
+}
+
+.user-notification-toast[hidden] {
+    display: none;
+}
+
+.user-notification-toast strong {
+    color: #c7b5ff;
+}
+
 .site-topbar .cart-link {
     position: relative;
     display: inline-flex;
@@ -223,6 +420,16 @@
 
     .account-greeting {
         display: none;
+    }
+
+    .user-notification-button {
+        width: 38px;
+        height: 38px;
+    }
+
+    .user-notification-toast {
+        top: 112px;
+        right: 12px;
     }
 }
 

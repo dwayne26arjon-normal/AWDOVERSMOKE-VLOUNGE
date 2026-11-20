@@ -57,6 +57,7 @@ class AdminOrderManagementTest extends TestCase
             ->getJson(route('admin.orders.notifications'))
             ->assertOk()
             ->assertJsonPath('cursor', $existingOrder->id)
+            ->assertJsonPath('latest_id', $existingOrder->id)
             ->assertJsonCount(0, 'orders');
 
         $newOrder = $this->createOrder();
@@ -65,6 +66,7 @@ class AdminOrderManagementTest extends TestCase
             ->getJson(route('admin.orders.notifications', ['after' => $existingOrder->id]))
             ->assertOk()
             ->assertJsonPath('cursor', $newOrder->id)
+            ->assertJsonPath('latest_id', $newOrder->id)
             ->assertJsonPath('orders.0.number', $newOrder->order_number)
             ->assertJsonPath('orders.0.buyer', $newOrder->customer_name)
             ->assertJsonPath('orders.0.items', 1);

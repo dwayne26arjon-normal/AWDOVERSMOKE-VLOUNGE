@@ -10,6 +10,7 @@ class ProductVariant extends Model
     protected $fillable = [
         'name',
         'stock',
+        'image_path',
     ];
 
     protected function casts(): array

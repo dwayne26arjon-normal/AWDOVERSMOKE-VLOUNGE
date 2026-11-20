@@ -91,7 +91,11 @@ class OrdersTest extends TestCase
             'stock' => 7,
             'is_active' => true,
         ]);
-        $berry = $product->variants()->create(['name' => 'Berry Ice', 'stock' => 5]);
+        $berry = $product->variants()->create([
+            'name' => 'Berry Ice',
+            'stock' => 5,
+            'image_path' => 'products/variants/berry-ice.png',
+        ]);
         $mint = $product->variants()->create(['name' => 'Cool Mint', 'stock' => 2]);
 
         $payload = [
@@ -112,6 +116,7 @@ class OrdersTest extends TestCase
         $this->assertSame(2, $mint->fresh()->stock);
         $this->assertSame(4, $product->fresh()->stock);
         $this->assertSame('Berry Ice', Order::firstOrFail()->items->first()->color);
+        $this->assertSame('products/variants/berry-ice.png', Order::firstOrFail()->items->first()->image_path);
 
         $payload['items'][0]['quantity'] = 3;
         $this->actingAs($customer)

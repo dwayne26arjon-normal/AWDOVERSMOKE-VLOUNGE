@@ -22,6 +22,7 @@ CREATE TABLE `users` (
     `address` VARCHAR(500) NULL DEFAULT NULL,
     `is_admin` TINYINT(1) NOT NULL DEFAULT 0,
     `is_staff` TINYINT(1) NOT NULL DEFAULT 0,
+    `order_notifications_enabled` TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (`id`),
     UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -122,12 +123,26 @@ CREATE TABLE `product_variants` (
     `product_id` BIGINT UNSIGNED NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `stock` INT UNSIGNED NOT NULL DEFAULT 0,
+    `image_path` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NULL DEFAULT NULL,
     `updated_at` TIMESTAMP NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `product_variants_product_id_name_unique` (`product_id`, `name`),
     CONSTRAINT `product_variants_product_id_foreign`
         FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `notifications` (
+    `id` CHAR(36) NOT NULL,
+    `type` VARCHAR(255) NOT NULL,
+    `notifiable_type` VARCHAR(255) NOT NULL,
+    `notifiable_id` BIGINT UNSIGNED NOT NULL,
+    `data` TEXT NOT NULL,
+    `read_at` TIMESTAMP NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `notifications_notifiable_type_notifiable_id_index` (`notifiable_type`, `notifiable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `orders` (
@@ -191,4 +206,6 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
     ('2026_10_28_000004_create_orders_table', 1),
     ('2026_11_17_000000_add_is_featured_to_products_table', 1),
     ('2026_11_17_000001_add_featured_images_and_product_variants', 1),
-    ('2026_11_20_000000_add_is_staff_to_users_table', 1);
+    ('2026_11_20_000000_add_is_staff_to_users_table', 1),
+    ('2026_11_20_000001_add_order_notifications_to_users_and_create_notifications_table', 1),
+    ('2026_11_20_000002_add_image_path_to_product_variants', 1);

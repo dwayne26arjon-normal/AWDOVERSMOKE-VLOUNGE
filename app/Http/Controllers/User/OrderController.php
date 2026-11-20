@@ -137,7 +137,7 @@ class OrderController extends Controller
                     'product_name' => $product->name,
                     'brand' => $product->brand,
                     'category' => $product->category,
-                    'image_path' => $product->image_path,
+                    'image_path' => ($selectedVariants[$index] ?? null)?->image_path ?: $product->image_path,
                     'color' => $selectedVariants[$index]->name ?? ($item['color'] ?? null),
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,

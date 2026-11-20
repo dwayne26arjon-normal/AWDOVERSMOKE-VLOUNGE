@@ -122,14 +122,9 @@
                     <div class="input-prefix"><span>₱</span><input type="number" id="price" name="price" value="{{ old('price', $product->price) }}" min="0" max="99999999.99" step="0.01" required></div>
                     @error('price')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
-                <div class="form-field">
-                    <label for="stock">Stock quantity <span>*</span></label>
-                    <input type="number" id="stock" name="stock" value="{{ old('stock', $product->stock ?? 0) }}" min="0" step="1" required>
-                    @error('stock')<p class="field-error">{{ $message }}</p>@enderror
-                </div>
                 @php
                     $variantRows = old('variants', $product->exists
-                        ? $product->variants->map(fn ($variant) => ['name' => $variant->name, 'stock' => $variant->stock])->all()
+                        ? $product->variants->map(fn ($variant) => ['name' => $variant->name, 'stock' => $variant->stock, 'image_path' => $variant->image_path])->all()
                         : []);
                 @endphp
                 <section class="variant-editor" id="variant-editor" data-label="{{ $variantLabel ?? '' }}" hidden>
@@ -149,6 +144,17 @@
                                         <span>Stock</span>
                                         <input type="number" name="variants[{{ $index }}][stock]" value="{{ $variant['stock'] }}" min="0" step="1" required>
                                     </label>
+                                    <label class="variant-image-picker">
+                                        <span class="variant-image-label">Option image</span>
+                                        <span class="variant-image-preview">
+                                            @if (! empty($variant['image_path']))
+                                                <img src="{{ asset('storage/' . $variant['image_path']) }}" alt="Current option image">
+                                            @else
+                                                <span aria-hidden="true">+</span>
+                                            @endif
+                                        </span>
+                                        <input class="variant-image-input" type="file" name="variants[{{ $index }}][image]" accept="image/*">
+                                    </label>
                                     <button class="remove-variant" type="button" aria-label="Remove option">×</button>
                                 </div>
                             @endforeach
@@ -156,6 +162,12 @@
                     </div>
                     <button class="secondary-button add-variant" id="add-variant" type="button">+ Add option</button>
                 </section>
+                <div class="form-field">
+                    <label for="stock"><span id="stock-label">Stock quantity</span> <span>*</span></label>
+                    <input type="number" id="stock" name="stock" value="{{ old('stock', $product->stock ?? 0) }}" min="0" step="1" required>
+                    <small class="stock-hint" id="stock-hint" hidden>Overall stock is calculated from the stock of all options.</small>
+                    @error('stock')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
                 <label class="active-toggle" for="is_active">
                     <input type="checkbox" id="is_active" name="is_active" value="1" @checked($errors->any() ? old('is_active') : ($product->exists ? $product->is_active : true))>
                     <span><strong>Visible in store</strong><small>Active products can be shown to customers.</small></span>
@@ -214,6 +226,7 @@
         .form-field textarea { min-height: 98px; resize: vertical; line-height: 1.55; }
         .form-field input:focus, .form-field textarea:focus { border-color: #7045eb; box-shadow: 0 0 0 2px rgba(112, 69, 235, .15); }
         .form-field input::placeholder, .form-field textarea::placeholder { color: #696373; }
+        .stock-hint { display: block; margin-top: 6px; color: #8d8798; font-size: 9px; line-height: 1.4; }
         .form-two { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
         .form-two > .form-field { margin-top: 0; }
         .form-two > .form-field { display: flex; flex-direction: column; }
@@ -237,9 +250,15 @@
         .variant-editor .form-panel-heading { margin-bottom: 10px; }
         .variant-list-scroll { max-height: 270px; overflow-y: auto; overscroll-behavior: contain; padding-right: 5px; }
         .variant-list { display: grid; gap: 8px; }
-        .variant-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px 28px; gap: 7px; align-items: end; }
+        .variant-row { display: grid; grid-template-columns: minmax(0, 1fr) 68px minmax(105px, 132px) 28px; gap: 7px; align-items: end; }
         .variant-row label > span { display: block; margin-bottom: 5px; color: #a9a2b4; font-size: 9px; }
         .variant-row input { min-width: 0; width: 100%; min-height: 32px; padding: 6px 8px; border: 1px solid #302a3b; border-radius: 5px; background: #121019; color: #f0edf5; font: inherit; font-size: 10px; }
+        .variant-row .variant-image-picker { position: relative; display: flex; min-width: 0; min-height: 50px; align-items: center; gap: 7px; margin: 0; padding: 5px; border: 1px solid #302a3b; border-radius: 5px; background: #121019; cursor: pointer; }
+        .variant-row .variant-image-label { min-width: 0; margin: 0; overflow: hidden; color: #a9a2b4; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+        .variant-image-preview { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; overflow: hidden; border: 1px dashed #493a68; border-radius: 4px; color: #b49bff; font-size: 17px; }
+        .variant-image-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .variant-row .variant-image-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); }
+        .variant-image-picker:focus-within { outline: 2px solid #8357ff; outline-offset: 2px; }
         .remove-variant { width: 28px; height: 32px; border: 1px solid #49303c; border-radius: 5px; color: #e88b9b; font-size: 17px; }
         .add-variant { margin-top: 9px; padding: 7px 10px; font-size: 9px; }
         .active-toggle { display: flex; align-items: flex-start; gap: 9px; margin-top: 19px; padding: 11px; border: 1px solid #2c2735; border-radius: 5px; cursor: pointer; }
@@ -261,7 +280,18 @@
         .delete-confirm-button { min-height: 32px; padding: 0 12px; border: 1px solid #9a3445; border-radius: 6px; background: #8d293a; color: #fff; font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
         .delete-confirm-button:hover { background: #a83246; }
         @media (max-width: 780px) { .product-form { grid-template-columns: 1fr; } }
-        @media (max-width: 460px) { .form-two { grid-template-columns: 1fr; gap: 0; } }
+        @media (max-width: 460px) {
+            .form-two { grid-template-columns: 1fr; gap: 0; }
+            .form-field input, .form-field textarea, .form-field select { min-height: 44px; font-size: 14px; }
+            .form-field textarea { min-height: 110px; }
+            .variant-row { grid-template-columns: minmax(0, 1fr) 78px 30px; gap: 8px; }
+            .variant-row .variant-image-picker { grid-column: 1 / -1; min-height: 58px; }
+            .variant-image-preview { width: 44px; height: 44px; flex-basis: 44px; }
+            .variant-row input { min-height: 40px; font-size: 14px; }
+            .variant-row .variant-image-input { min-height: 0; }
+            .remove-variant { width: 30px; height: 40px; }
+            .add-variant { min-height: 42px; }
+        }
     </style>
 @endpush
 
@@ -339,12 +369,28 @@
             stockInput.required = true;
             stockLabel.append(stockCaption, stockInput);
 
+            const imageLabel = document.createElement('label');
+            imageLabel.className = 'variant-image-picker';
+            const imageCaption = document.createElement('span');
+            imageCaption.className = 'variant-image-label';
+            imageCaption.textContent = 'Option image';
+            const imagePreview = document.createElement('span');
+            imagePreview.className = 'variant-image-preview';
+            imagePreview.setAttribute('aria-hidden', 'true');
+            imagePreview.textContent = '+';
+            const imageInput = document.createElement('input');
+            imageInput.className = 'variant-image-input';
+            imageInput.type = 'file';
+            imageInput.name = `variants[${index}][image]`;
+            imageInput.accept = 'image/*';
+            imageLabel.append(imageCaption, imagePreview, imageInput);
+
             const removeButton = document.createElement('button');
             removeButton.className = 'remove-variant';
             removeButton.type = 'button';
             removeButton.setAttribute('aria-label', 'Remove option');
             removeButton.textContent = '×';
-            row.append(nameLabel, stockLabel, removeButton);
+            row.append(nameLabel, stockLabel, imageLabel, removeButton);
             variantList.append(row);
         }
 
@@ -356,6 +402,8 @@
             variantList.querySelectorAll('.variant-row-label').forEach(element => element.textContent = label);
             variantList.querySelectorAll('input').forEach(input => input.disabled = !label);
             stockInput.readOnly = Boolean(label);
+            document.getElementById('stock-label').textContent = label ? 'Overall stock' : 'Stock quantity';
+            document.getElementById('stock-hint').hidden = !label;
             if (label && !variantList.children.length) addVariantRow();
             if (label) updateVariantStock();
         }
@@ -372,6 +420,17 @@
         customCategoryInput.addEventListener('input', syncCategory);
         addVariantButton.addEventListener('click', () => addVariantRow());
         variantList.addEventListener('input', updateVariantStock);
+        variantList.addEventListener('change', event => {
+            const input = event.target.closest('.variant-image-input');
+            const [file] = input?.files ?? [];
+            if (!file) return;
+
+            const preview = input.closest('.variant-image-picker').querySelector('.variant-image-preview');
+            const image = document.createElement('img');
+            image.src = URL.createObjectURL(file);
+            image.alt = 'Selected option image preview';
+            preview.replaceChildren(image);
+        });
         variantList.addEventListener('click', event => {
             if (!event.target.closest('.remove-variant')) return;
             event.target.closest('.variant-row').remove();

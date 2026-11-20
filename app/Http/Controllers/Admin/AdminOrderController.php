@@ -7,6 +7,7 @@ use App\Mail\OrderInvoiceMail;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Notifications\OrderStatusUpdated;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class AdminOrderController extends Controller
         $latestId = (int) Order::query()->max('id');
 
         if (! array_key_exists('after', $validated)) {
-            return response()->json(['cursor' => $latestId, 'orders' => []])
+            return response()->json(['cursor' => $latestId, 'latest_id' => $latestId, 'orders' => []])
                 ->header('Cache-Control', 'no-store');
         }
 
@@ -42,6 +43,7 @@ class AdminOrderController extends Controller
 
         return response()->json([
             'cursor' => $orders->last()?->id ?? max($validated['after'], $latestId),
+            'latest_id' => $latestId,
             'orders' => $orders->map(fn (Order $order) => [
                 'id' => $order->id,
                 'number' => $order->order_number,
@@ -86,8 +88,9 @@ class AdminOrderController extends Controller
             'status' => ['required', Rule::in(['processing', 'shipped', 'completed', 'cancelled'])],
         ]);
 
-        DB::transaction(function () use ($order, $data) {
+        $statusChanged = DB::transaction(function () use ($order, $data) {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            $previousStatus = $lockedOrder->status;
             $items = $lockedOrder->items;
             $quantities = $items->whereNotNull('product_id')
                 ->groupBy('product_id')
@@ -146,7 +149,13 @@ class AdminOrderController extends Controller
             }
 
             $lockedOrder->update($data);
+
+            return $previousStatus !== $lockedOrder->status;
         });
+
+        if ($statusChanged && $order->user) {
+            $order->user->notify(new OrderStatusUpdated($order->fresh()));
+        }
 
         return redirect()->route('admin.orders.show', $order)->with('status', 'Order status updated.');
     }

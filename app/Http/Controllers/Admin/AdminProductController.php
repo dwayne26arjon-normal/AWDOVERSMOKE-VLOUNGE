@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -271,7 +272,11 @@ class AdminProductController extends Controller
         $image = $data['image'] ?? null;
         $featuredImage = $data['featured_image'] ?? null;
         $variants = array_map(
-            fn (array $variant) => ['name' => trim($variant['name']), 'stock' => (int) $variant['stock']],
+            fn (array $variant) => [
+                'name' => trim($variant['name']),
+                'stock' => (int) $variant['stock'],
+                'image' => $variant['image'] ?? null,
+            ],
             $data['variants'] ?? []
         );
         unset($data['image'], $data['featured_image'], $data['variants']);
@@ -288,6 +293,15 @@ class AdminProductController extends Controller
         }
         if ($variantLabel && $variants) {
             $data['stock'] = array_sum(array_column($variants, 'stock'));
+            $variants = array_map(function (array $variant): array {
+                $image = $variant['image'];
+                unset($variant['image']);
+                $variant['image_path'] = $image ? $image->store('products/variants', 'public') : null;
+
+                return $variant;
+            }, $variants);
+        } else {
+            $variants = [];
         }
 
         DB::transaction(function () use ($data, $variants, $variantLabel) {
@@ -316,7 +330,11 @@ class AdminProductController extends Controller
         $image = $data['image'] ?? null;
         $featuredImage = $data['featured_image'] ?? null;
         $variants = array_map(
-            fn (array $variant) => ['name' => trim($variant['name']), 'stock' => (int) $variant['stock']],
+            fn (array $variant) => [
+                'name' => trim($variant['name']),
+                'stock' => (int) $variant['stock'],
+                'image' => $variant['image'] ?? null,
+            ],
             $data['variants'] ?? []
         );
         unset($data['image'], $data['featured_image'], $data['variants']);
@@ -325,6 +343,8 @@ class AdminProductController extends Controller
         $variantLabel = $this->optionLabel($data['category']);
         $variants = $variantLabel ? $variants : [];
         $variantNames = array_column($variants, 'name');
+        $existingVariants = $product->variants->keyBy('name');
+        $variantsByName = collect($variants)->keyBy('name');
         $usedVariantNames = OrderItem::query()
             ->where('product_id', $product->id)
             ->whereNotNull('color')
@@ -343,6 +363,12 @@ class AdminProductController extends Controller
         }
         $oldImage = null;
         $oldFeaturedImage = null;
+        $oldVariantImages = $existingVariants
+            ->filter(fn (ProductVariant $variant) => ! $variantsByName->has($variant->name)
+                || ! empty($variantsByName->get($variant->name)['image']))
+            ->pluck('image_path')
+            ->filter()
+            ->all();
 
         if ($image) {
             $oldImage = $product->image_path;
@@ -354,6 +380,18 @@ class AdminProductController extends Controller
         }
         if ($variantLabel && $variants) {
             $data['stock'] = array_sum(array_column($variants, 'stock'));
+            $variants = array_map(function (array $variant) use ($existingVariants): array {
+                $image = $variant['image'];
+                $currentVariant = $existingVariants->get($variant['name']);
+                unset($variant['image']);
+                $variant['image_path'] = $image
+                    ? $image->store('products/variants', 'public')
+                    : $currentVariant?->image_path;
+
+                return $variant;
+            }, $variants);
+        } else {
+            $variants = [];
         }
 
         DB::transaction(function () use ($product, $data, $variants, $variantLabel) {
@@ -368,13 +406,16 @@ class AdminProductController extends Controller
                 foreach ($variants as $variant) {
                     $product->variants()->updateOrCreate(
                         ['name' => $variant['name']],
-                        ['stock' => $variant['stock']]
+                        [
+                            'stock' => $variant['stock'],
+                            'image_path' => $variant['image_path'],
+                        ]
                     );
                 }
             }
         });
 
-        foreach ([$oldImage, $oldFeaturedImage] as $oldPath) {
+        foreach (array_merge([$oldImage, $oldFeaturedImage], $oldVariantImages) as $oldPath) {
             if ($oldPath) {
                 Storage::disk('public')->delete($oldPath);
             }
@@ -385,7 +426,8 @@ class AdminProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        foreach ([$product->image_path, $product->featured_image_path] as $imagePath) {
+        $variantImages = $product->variants()->whereNotNull('image_path')->pluck('image_path')->all();
+        foreach (array_merge([$product->image_path, $product->featured_image_path], $variantImages) as $imagePath) {
             if ($imagePath) {
                 Storage::disk('public')->delete($imagePath);
             }
@@ -412,6 +454,7 @@ class AdminProductController extends Controller
             'variants' => ['nullable', 'array', 'min:1', 'max:30'],
             'variants.*.name' => ['required_with:variants', 'string', 'max:50'],
             'variants.*.stock' => ['required_with:variants', 'integer', 'min:0', 'max:4294967295'],
+            'variants.*.image' => ['nullable', 'image', 'max:2048'],
         ]);
 
         if (! empty($data['variants'])) {

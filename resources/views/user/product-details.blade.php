@@ -34,6 +34,10 @@
     <main class="page">
         <a class="back-link" href="{{ url('/home') }}">← <span>Back to shop</span></a>
         <p class="eyebrow">PRODUCT DETAILS</p>
+        @php
+            $availableVariant = $product->variants->first(fn ($variant) => $variant->stock > 0) ?? $product->variants->first();
+            $previewImagePath = $availableVariant?->image_path ?: $product->image_path;
+        @endphp
         <section class="product-panel" id="product"
                  data-id="{{ $product->id }}"
                  data-name="{{ $product->name }}"
@@ -41,12 +45,12 @@
                  data-price="{{ $product->price }}"
                  data-stock="{{ $product->stock }}"
                  data-option-label="{{ $product->optionLabel() ?? '' }}"
-                 data-options="{{ $product->variants->map(fn ($variant) => ['name' => $variant->name, 'stock' => $variant->stock])->values()->toJson() }}"
+                 data-options="{{ $product->variants->map(fn ($variant) => ['name' => $variant->name, 'stock' => $variant->stock, 'image' => $variant->image_path ? asset('storage/' . $variant->image_path) : null])->values()->toJson() }}"
                  data-authenticated="{{ auth('web')->check() ? 'true' : 'false' }}"
                  data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
             <div class="product-visual" id="productImagePreview">
-                @if ($product->image_path)
-                    <img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}">
+                @if ($previewImagePath)
+                    <img src="{{ asset('storage/' . $previewImagePath) }}" alt="{{ $product->name }}">
                     <span class="image-preview-hint">Move your cursor to preview</span>
                 @else
                     <div class="device-placeholder" aria-hidden="true"></div>
@@ -66,7 +70,6 @@
                 <p class="description">{{ $product->description ?: 'A quality ' . strtolower($product->category) . ' product' . ($product->brand ? ' from ' . $product->brand : '') . '. Choose an option and quantity before adding it to your cart.' }}</p>
 
                 @if ($product->variants->isNotEmpty())
-                    @php($availableVariant = $product->variants->first(fn ($variant) => $variant->stock > 0))
                     <fieldset class="color-picker">
                         <legend>{{ $product->optionLabel() }} <span id="selectedOption">{{ $availableVariant?->name ?? $product->variants->first()->name }}</span></legend>
                         @if ($product->variants->count() > 8)
@@ -75,7 +78,12 @@
                         @endif
                         <div class="color-options">
                             @foreach ($product->variants as $variant)
-                                <button type="button" class="color-option{{ $availableVariant?->id === $variant->id ? ' selected' : '' }}" data-option="{{ $variant->name }}" data-stock="{{ $variant->stock }}" aria-pressed="{{ $availableVariant?->id === $variant->id ? 'true' : 'false' }}" @disabled($variant->stock <= 0)>{{ $variant->name }}{{ $variant->stock <= 0 ? ' (Out of stock)' : '' }}</button>
+                                <button type="button" class="color-option{{ $availableVariant?->id === $variant->id ? ' selected' : '' }}" data-option="{{ $variant->name }}" data-stock="{{ $variant->stock }}" data-image="{{ $variant->image_path ? asset('storage/' . $variant->image_path) : '' }}" aria-pressed="{{ $availableVariant?->id === $variant->id ? 'true' : 'false' }}" @disabled($variant->stock <= 0)>
+                                    @if ($variant->image_path)
+                                        <img class="color-option-image" src="{{ asset('storage/' . $variant->image_path) }}" alt="">
+                                    @endif
+                                    <span>{{ $variant->name }}{{ $variant->stock <= 0 ? ' (Out of stock)' : '' }}</span>
+                                </button>
                             @endforeach
                         </div>
                     </fieldset>

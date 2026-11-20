@@ -72,12 +72,37 @@
     }
 
     const imagePreview = document.getElementById('productImagePreview');
-    const previewImage = imagePreview.querySelector('img');
+    let previewImage = imagePreview.querySelector('img');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)');
 
-    if (previewImage && supportsHover.matches && ! reducedMotion.matches) {
+    function showProductImage(imageUrl) {
+        if (imageUrl) {
+            if (!previewImage) {
+                previewImage = document.createElement('img');
+                previewImage.alt = product.dataset.name;
+                imagePreview.querySelector('.device-placeholder')?.remove();
+                imagePreview.prepend(previewImage);
+            }
+            previewImage.src = imageUrl;
+            return;
+        }
+
+        if (previewImage) {
+            previewImage.remove();
+            previewImage = null;
+        }
+        if (!imagePreview.querySelector('.device-placeholder')) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'device-placeholder';
+            placeholder.setAttribute('aria-hidden', 'true');
+            imagePreview.prepend(placeholder);
+        }
+    }
+
+    if (supportsHover.matches && ! reducedMotion.matches) {
         function updatePreview(event) {
+            if (!previewImage) return;
             const bounds = imagePreview.getBoundingClientRect();
             const x = (event.clientX - bounds.left) / bounds.width;
             const y = (event.clientY - bounds.top) / bounds.height;
@@ -119,7 +144,7 @@
     }
 
     function productImage() {
-        const imageUrl = product.dataset.image;
+        const imageUrl = selectedOption?.dataset.image || product.dataset.image;
         if (!imageUrl) return null;
 
         const parsedUrl = new URL(imageUrl, window.location.origin);
@@ -141,6 +166,7 @@
             button.setAttribute('aria-pressed', 'true');
             selectedOption = button;
             document.getElementById('selectedOption').textContent = button.dataset.option;
+            showProductImage(button.dataset.image || product.dataset.image);
             updateQuantity(quantity);
         });
     });

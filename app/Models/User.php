@@ -25,6 +25,7 @@ class User extends Authenticatable
         'phone',
         'address',
         'password',
+        'order_notifications_enabled',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'is_staff' => 'boolean',
+            'order_notifications_enabled' => 'boolean',
         ];
     }
 

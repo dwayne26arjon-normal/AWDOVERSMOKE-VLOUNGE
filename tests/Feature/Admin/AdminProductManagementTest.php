@@ -253,13 +253,21 @@ class AdminProductManagementTest extends TestCase
                     base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=')
                 ),
                 'variants' => [
-                    ['name' => 'Midnight Black', 'stock' => 4],
+                    [
+                        'name' => 'Midnight Black',
+                        'stock' => 4,
+                        'image' => UploadedFile::fake()->createWithContent(
+                            'black.png',
+                            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=')
+                        ),
+                    ],
                     ['name' => 'Ice Blue', 'stock' => 3],
                 ],
             ])
             ->assertRedirect(route('admin.products.index'));
 
         $product = Product::where('name', 'Color Pod')->with('variants')->firstOrFail();
+        $blackVariant = $product->variants->firstWhere('name', 'Midnight Black');
         $this->assertSame(7, $product->stock);
         $this->assertDatabaseHas('product_variants', [
             'product_id' => $product->id,
@@ -271,6 +279,8 @@ class AdminProductManagementTest extends TestCase
             'name' => 'Ice Blue',
             'stock' => 3,
         ]);
+        $this->assertNotNull($blackVariant->image_path);
+        Storage::disk('public')->assertExists($blackVariant->image_path);
         Storage::disk('public')->assertExists($product->image_path);
         Storage::disk('public')->assertExists($product->featured_image_path);
 
@@ -279,7 +289,9 @@ class AdminProductManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Color')
             ->assertSee('Midnight Black')
-            ->assertSee('Ice Blue');
+            ->assertSee('Ice Blue')
+            ->assertSee('class="color-option-image"', false)
+            ->assertSee(asset('storage/' . $blackVariant->image_path), false);
 
         $this->actingAs($admin, 'admin')
             ->get(route('home'))
@@ -308,6 +320,78 @@ class AdminProductManagementTest extends TestCase
             ->assertSee('Flavor')
             ->assertSee('Blueberry Ice')
             ->assertSee('Cool Mint');
+    }
+
+    public function test_variant_images_survive_edits_and_are_removed_with_the_product(): void
+    {
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+        $imageContent = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l3sAAAAASUVORK5CYII=');
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.products.store'), [
+                'name' => 'Berry Juice',
+                'category' => 'Juices',
+                'price' => 450,
+                'stock' => 0,
+                'is_active' => '1',
+                'variants' => [
+                    [
+                        'name' => 'Berry Ice',
+                        'stock' => 3,
+                        'image' => UploadedFile::fake()->createWithContent('berry.png', $imageContent),
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.products.index'));
+
+        $product = Product::where('name', 'Berry Juice')->with('variants')->firstOrFail();
+        $firstImagePath = $product->variants->first()->image_path;
+        $this->assertNotNull($firstImagePath);
+        Storage::disk('public')->assertExists($firstImagePath);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('variants[0][image]', false)
+            ->assertSee('Overall stock')
+            ->assertSee(asset('storage/' . $firstImagePath), false);
+
+        $this->put(route('admin.products.update', $product), [
+            'name' => 'Berry Juice',
+            'category' => 'Juices',
+            'price' => 450,
+            'stock' => 0,
+            'is_active' => '1',
+            'variants' => [['name' => 'Berry Ice', 'stock' => 3]],
+        ])->assertRedirect(route('admin.products.index'));
+
+        $this->assertSame($firstImagePath, $product->fresh()->variants->first()->image_path);
+        Storage::disk('public')->assertExists($firstImagePath);
+
+        $this->put(route('admin.products.update', $product), [
+            'name' => 'Berry Juice',
+            'category' => 'Juices',
+            'price' => 450,
+            'stock' => 0,
+            'is_active' => '1',
+            'variants' => [
+                [
+                    'name' => 'Berry Ice',
+                    'stock' => 3,
+                    'image' => UploadedFile::fake()->createWithContent('berry-new.png', $imageContent),
+                ],
+            ],
+        ])->assertRedirect(route('admin.products.index'));
+
+        $updatedImagePath = $product->fresh()->variants->first()->image_path;
+        $this->assertNotSame($firstImagePath, $updatedImagePath);
+        Storage::disk('public')->assertMissing($firstImagePath);
+        Storage::disk('public')->assertExists($updatedImagePath);
+
+        $this->delete(route('admin.products.destroy', $product))
+            ->assertRedirect(route('admin.products.index'));
+        Storage::disk('public')->assertMissing($updatedImagePath);
     }
 
     public function test_customer_cannot_manage_admin_products(): void

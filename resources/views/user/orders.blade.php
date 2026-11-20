@@ -69,7 +69,7 @@
         @else
             <section class="orders-list" aria-label="Order history">
                 @foreach ($orders as $order)
-                    <article class="order-card" data-order-id="{{ $order->id }}">
+                    <article class="order-card" id="order-{{ $order->id }}" data-order-id="{{ $order->id }}">
                         <header class="order-header">
                             <div class="order-reference">
                                 <strong>{{ $order->order_number }}</strong>
