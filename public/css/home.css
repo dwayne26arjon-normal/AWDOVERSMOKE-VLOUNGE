@@ -247,7 +247,7 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     .main { display: contents; }
     .topbar { order: 0; }
     .banner { order: 1; }
-    .sidebar { position: static; order: 2; display: block; height: auto; padding: 14px 24px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
+    .sidebar { position: static; order: 2; display: block; align-self: stretch; width: 100%; height: auto; padding: 14px 24px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
     .sidebar .logo { display: none; }
     .filters-head { padding: 0; border: 0; }
     .filter-drawer { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(16,16,24,.82); }
