@@ -36,6 +36,27 @@ class AdminStaffManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'staff@example.com']);
     }
 
+    public function test_owner_can_create_another_admin_account(): void
+    {
+        $owner = User::factory()->create(['is_admin' => true]);
+        $this->actingAs($owner, 'admin');
+
+        $this->post(route('admin.staff.admin.store'), [
+            'name' => 'Second Admin',
+            'email' => 'second-admin@example.com',
+            'password' => 'secure-password-123',
+            'password_confirmation' => 'secure-password-123',
+        ])->assertRedirect(route('admin.staff.index'));
+
+        $admin = User::query()->where('email', 'second-admin@example.com')->firstOrFail();
+        $this->assertTrue($admin->is_admin);
+        $this->assertFalse($admin->is_staff);
+
+        $this->get(route('admin.staff.index'))
+            ->assertOk()
+            ->assertSee('Second Admin');
+    }
+
     public function test_staff_can_access_store_work_areas_but_not_staff_management(): void
     {
         $staff = User::factory()->create();

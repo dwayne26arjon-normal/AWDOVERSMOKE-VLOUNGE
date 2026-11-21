@@ -18,6 +18,10 @@ class AdminStaffController extends Controller
                 ->where('is_staff', true)
                 ->orderBy('name')
                 ->get(),
+            'adminMembers' => User::query()
+                ->where('is_admin', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -38,6 +42,25 @@ class AdminStaffController extends Controller
         $staff->save();
 
         return redirect()->route('admin.staff.index')->with('status', 'Staff account created.');
+    }
+
+    public function storeAdmin(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $admin = new User;
+        $admin->name = $data['name'];
+        $admin->email = $data['email'];
+        $admin->password = Hash::make($data['password']);
+        $admin->is_admin = true;
+        $admin->is_staff = false;
+        $admin->save();
+
+        return redirect()->route('admin.staff.index')->with('status', 'Admin account created.');
     }
 
     public function destroy(User $staff): RedirectResponse

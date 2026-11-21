@@ -42,6 +42,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('admin.owner')->group(function () {
             Route::get('/staff', [AdminStaffController::class, 'index'])->name('staff.index');
             Route::post('/staff', [AdminStaffController::class, 'store'])->name('staff.store');
+            Route::post('/staff/admin', [AdminStaffController::class, 'storeAdmin'])->name('staff.admin.store');
             Route::delete('/staff/{staff}', [AdminStaffController::class, 'destroy'])->name('staff.destroy');
         });
     });
